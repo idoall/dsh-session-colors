@@ -4,3 +4,4 @@ node_modules/
 npm-debug.log*
 .pnpm-store/
 .npm-cache/
+.gh-cache/
