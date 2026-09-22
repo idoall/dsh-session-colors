@@ -107,6 +107,17 @@ test('both READMEs state the DSH versions this build is verified against', () =>
   }
   for (const [name, body] of [['README.md', read('README.md')], ['README.zh.md', read('README.zh.md')]]) {
     assert.ok(body.includes(`\`${pkg.version}\``), `${name} must name the plugin version ${pkg.version}`);
+    // The install command must not pin a version that can rot: it either follows
+    // `latest` or names the version package.json declares. A pinned command that
+    // nobody bumps keeps telling users to install an old release.
+    const installs = [...body.matchAll(/add @idoall\/dsh-session-colors@([\w.-]+)/g)].map((m) => m[1]);
+    assert.ok(installs.length > 0, `${name} must show an install command`);
+    for (const pinned of installs) {
+      assert.ok(
+        pinned === 'latest' || pinned === pkg.version,
+        `${name} install command pins @${pinned}: neither @latest nor the current ${pkg.version}`,
+      );
+    }
     for (const release of verified) assert.ok(body.includes(release), `${name} must name verified DSH ${release}`);
     assert.match(body, /compatibility|兼容性/, `${name} must have a compatibility section`);
   }
