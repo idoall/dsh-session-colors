@@ -8,6 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-22
+
+Documentation only — no code change.
+
+### Fixed
+
+- The npm package no longer tells visitors it is unpublished. The `0.1.0` tarball
+  was packed before the README was updated, so the package page carried a grey
+  "not published" badge and an install section that said the package was not on
+  npm yet. npm packages are immutable, so this needed a new version.
+
+### Added
+
+- `screenshots.json` declares the three screenshots the plugin-market detail view
+  shows. It lives in this repository, so replacing one later is a push here rather
+  than a pull request to the list.
+
+### Notes
+
+- First tag-driven release: pushing `v0.1.1` publishes through npm Trusted
+  Publishing (OIDC), with no npm token and no manual second factor.
+
 ## [0.1.0] - 2026-09-22
 
 First release.
