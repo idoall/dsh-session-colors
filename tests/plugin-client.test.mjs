@@ -390,6 +390,24 @@ test('the chip layer leaves the shell overlay so a drawer cannot cover it', () =
   assert.match(source, /zIndex: layer\.zIndex/)
 })
 
+test('each mutation option set gets its own observer', () => {
+  // A second observe() call on the SAME target replaces the first one's options
+  // instead of merging them (DOM spec). Sharing one observer for childList and
+  // for body attributes silently stopped childList from being watched at all, so
+  // collapsing a workspace removed its rows without a re-sync and the chips sat
+  // at the old coordinates until the peer poll re-rendered the layer ~20s later.
+  const watches = [...source.matchAll(/\.observe\(document\.body,\s*\{([^}]*)\}/g)].map((m) => m[1])
+  assert.equal(watches.length, 3, 'childList, the drawer class, and the collapsed-workspace state')
+  assert.ok(watches.some((w) => /childList: true/.test(w)), 'rows appearing and disappearing must be watched')
+  assert.ok(watches.some((w) => /attributeFilter: \['class'\]/.test(w)), 'the phone drawer must be watched')
+  assert.ok(watches.some((w) => /aria-expanded/.test(w)), 'a collapse that only hides rows must be watched')
+  assert.equal(
+    [...source.matchAll(/new MutationObserver\(sync\)/g)].length,
+    watches.length,
+    'one observer per option set, or the options replace each other',
+  )
+})
+
 test('the chip layer follows a drawer that slides in without a DOM change', () => {
   // The phone adapter opens its sidebar by toggling a class on `body` and
   // animating a transform: no scroll, no resize, no child mutation. Without

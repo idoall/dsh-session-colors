@@ -114,12 +114,13 @@ stored as HSVA, so alpha round-trips exactly.
 
 ## Compatibility
 
-Current release: plugin **`0.1.1`**, verified against DeepSeek Harness
+Current release: plugin **`0.1.2`**, verified against DeepSeek Harness
 **`0.1.6-alpha.2`**.
 
 | Plugin version | Verified DeepSeek Harness | npm status | What it is |
 | --- | --- | --- | --- |
-| **`0.1.1`** | `0.1.6-alpha.2` | `latest` | Documentation only: the packaged README no longer says "not published", and the market screenshots are declared. No code change. |
+| **`0.1.2`** | `0.1.6-alpha.2` | `latest` | Fixes chips staying at their old coordinates for ~20s when a workspace is collapsed or expanded: a second `MutationObserver.observe()` on the same target had silently replaced the `childList` watch. |
+| `0.1.1` | `0.1.6-alpha.2` | published | Documentation only: the packaged README no longer says "not published", and the market screenshots are declared. |
 | `0.1.0` | `0.1.6-alpha.2` | published | First release: Session colour marks, Host-side storage, visible inside a phone's sidebar drawer |
 
 - **Verified DeepSeek Harness** is the exact DSH version this plugin was actually

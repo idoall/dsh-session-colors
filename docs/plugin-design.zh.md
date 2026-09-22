@@ -75,6 +75,25 @@ alpha.2 没有会话行 slot，行的 DOM 也**不暴露 session id**（实测�
 
 验证（同一手机视口，修复后）：`build=host-routes+drawer-aware`、浮层父节点为 `BODY`、`z=10001`、`pointer-events=none`；抽屉打开后色块在 x=14 可见（`evidence/mobile-drawer-chip-visible.png`）。手机端**完整往返**也跑通：打开选择器 → 点主题色 → 当前会话行立刻出现绿色色块 → 点"清除标记" → 宿主文件回到原来的 2 条标记。桌面 1892px 复测：`z=1`、色块在侧栏行上可见（`evidence/desktop-chip-after-portal.png`），设置弹窗打开时色块被弹窗盖住（`evidence/desktop-chip-below-dialog.png`）。
 
+### 折叠工作区时色块不消失（2026-09-22 实测定位与修复）
+
+用户报：把带标记会话的工作区**折叠**起来后，色块还留在原处（盖在下一行上），**约 20 秒后**才消失；展开时同样要等 20 秒才出现。
+
+20 秒正是 `PEER_POLL_MS`——那一次轮询让 store 产出新快照、React 重渲染、effect 重跑，才顺带重算了色块。也就是说：**折叠/展开根本没有触发任何重算**。
+
+**根因是 DOM 规范的一条细节**：对**同一个 target** 第二次调用 `observer.observe(target, options)` 是**替换** options，不是合并。浮层原本为了监听手机抽屉的 `body` class 变化，在同一个 observer 上又 observe 了一次 `document.body`：
+
+```js
+observer.observe(document.body, { childList: true, subtree: true })
+observer.observe(document.body, { attributes: true, attributeFilter: ['class'] })  // ← 把 childList 顶掉了
+```
+
+于是在真实页面上做了对照实验（同一 observer 先 childList 再 class，然后插入+删除一个节点并切换 body class）：**只收到 2 条记录，全是 class 变化，childList 一条都没有**。工作区折叠在这个构建里是**真的把行从 DOM 移除**（实测 `rows` 5→4、mutation 记录里有 childList 移除），所以本该触发重算——被这条细节吃掉了。
+
+**修法**：每个 options 组合各用一个 observer（行增删 / body class / `aria-expanded` 与 `hidden`），并在卸载时逐个 disconnect。第三个观察是给"只隐藏不移除"的折叠方式留的后路，`aria-expanded` 正是工作区展开折叠的语义信号。
+
+**实测验收**（真实 GUI，1200×900）：折叠 → 色块在 1 秒内消失（原先 20 秒）；展开 → 1 秒内出现；手机抽屉路径复验仍正常（`z=10001`、`pointer-events:none`、抽屉内可见）。回归测试守住"每个 options 组合必须有独立 observer"。
+
 ### 为什么选择器注册在 utilities 而不是 actions
 
 标题簇 `titleCluster` 是 `flex: 1 1 0%`，但它**不能收缩到内容以下**。注册在标题旁的 `headerActions` 会让它多出 28px + 4px 间隙；一旦左侧的模式 chip 变宽（例如「标准模式 · 1 个后台任务运行中」），整个簇就会溢出，**压在右侧 `headerUtilities` 上**——移动端实测溢出 102px，色块正好盖住模型下拉框。

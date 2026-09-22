@@ -621,16 +621,31 @@ window.__ModuleLoader__.load({
         }
         document.addEventListener('transitionrun', onTransition, true)
         document.addEventListener('transitionend', onTransition, true)
-        let observer
+        // Each option set needs its OWN observer. A second `observe()` call on
+        // the same target REPLACES the first one's options rather than merging
+        // them (DOM spec), so sharing one observer silently stopped childList
+        // from being watched at all: collapsing a workspace removed its rows
+        // without any re-sync, and the chips sat at their old coordinates until
+        // the peer poll happened to re-render the layer ~20s later.
+        const observers = []
         try {
-          observer = new MutationObserver(sync)
-          observer.observe(document.body, { childList: true, subtree: true })
+          const rowsObserver = new MutationObserver(sync)
+          rowsObserver.observe(document.body, { childList: true, subtree: true })
+          observers.push(rowsObserver)
           // The phone adapter opens its drawer by toggling a class on `body`.
           // With transitions disabled the geometry still changes, just without a
           // transition event to follow.
-          observer.observe(document.body, { attributes: true, attributeFilter: ['class'] })
+          const drawerObserver = new MutationObserver(sync)
+          drawerObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] })
+          observers.push(drawerObserver)
+          // A workspace collapse that hides rows instead of removing them
+          // produces no childList mutation, so follow the ARIA state and
+          // `hidden` as well.
+          const stateObserver = new MutationObserver(sync)
+          stateObserver.observe(document.body, { attributes: true, attributeFilter: ['aria-expanded', 'hidden'], subtree: true })
+          observers.push(stateObserver)
         } catch {
-          observer = undefined
+          // Without observers the layer still follows scroll, resize and transitions.
         }
         return () => {
           cancelFrame(frame)
@@ -638,7 +653,7 @@ window.__ModuleLoader__.load({
           window.removeEventListener('resize', sync)
           document.removeEventListener('transitionrun', onTransition, true)
           document.removeEventListener('transitionend', onTransition, true)
-          if (observer !== undefined) observer.disconnect()
+          for (const watcher of observers) watcher.disconnect()
         }
       }, [snapshot])
 
