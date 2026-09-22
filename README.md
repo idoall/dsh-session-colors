@@ -72,8 +72,11 @@ Requirements:
 - **Verified DSH version: `0.1.6-alpha.2`** (see [Compatibility](#compatibility))
 
 ```sh
-dsh plugin --profile <profile> add @idoall/dsh-session-colors@0.1.0
+dsh plugin --profile <profile> add @idoall/dsh-session-colors@latest
 ```
+
+The [compatibility table](#compatibility) lists the exact versions, if you need to
+pin one to a specific DSH release.
 
 Working on the plugin itself? Install the directory instead:
 

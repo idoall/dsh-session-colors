@@ -54,8 +54,10 @@
 - **已验证的 DSH 版本：`0.1.6-alpha.2`**（见[兼容性](#兼容性)）
 
 ```sh
-dsh plugin --profile <profile> add @idoall/dsh-session-colors@0.1.0
+dsh plugin --profile <profile> add @idoall/dsh-session-colors@latest
 ```
+
+要按 DSH 版本精确对应，用[兼容性](#兼容性)表里的具体版本号。
 
 要改插件本身就用目录安装：
 
