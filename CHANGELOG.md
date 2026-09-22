@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-09-22
+
+### Fixed
+
+- Chips no longer stay at their old coordinates for up to 20 seconds when a
+  workspace is collapsed or expanded. Each mutation option set now gets its own
+  `MutationObserver`: a second `observe()` call on the same target **replaces**
+  the first one's options rather than merging them, so sharing one observer for
+  `childList` and for the `body` class had silently stopped row additions and
+  removals from being watched at all. The chips only moved when the 20-second peer
+  poll happened to re-render the layer.
+
+### Added
+
+- A regression test that fails if two option sets ever share one observer again.
+
 ## [0.1.1] - 2026-09-22
 
 Documentation only — no code change.
