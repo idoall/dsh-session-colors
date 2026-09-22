@@ -3,7 +3,7 @@
 <p align="center">给任意会话上一个颜色，在侧栏一眼认出它。</p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@idoall/dsh-session-colors"><img alt="npm" src="https://img.shields.io/badge/npm-%E6%9C%AA%E5%8F%91%E5%B8%83-lightgrey"></a>
+  <a href="https://www.npmjs.com/package/@idoall/dsh-session-colors"><img alt="npm" src="https://img.shields.io/npm/v/@idoall/dsh-session-colors?label=npm&color=CB3837"></a>
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-0F172A"></a>
 </p>
 
@@ -53,7 +53,11 @@
 - Node.js 20 或更新版本
 - **已验证的 DSH 版本：`0.1.6-alpha.2`**（见[兼容性](#兼容性)）
 
-npm 上的 `@idoall/dsh-session-colors` **尚未发布**，所以现在装的是本仓库目录（发布后可用同样的插件命令装 npm 版本）：
+```sh
+dsh plugin --profile <profile> add @idoall/dsh-session-colors@0.1.0
+```
+
+要改插件本身就用目录安装：
 
 ```sh
 dsh plugin --profile <profile> add link:/path/to/dsh-session-colors
@@ -88,7 +92,7 @@ dsh plugin --profile <profile> add link:/path/to/dsh-session-colors
 
 | 插件版本 | 已验证的 DeepSeek Harness | npm 发布状态 | 该版本是什么 |
 | --- | --- | --- | --- |
-| **`0.1.0`** | `0.1.6-alpha.2` | **未发布**（仅本仓库） | 首个版本：会话颜色标记、宿主侧存储、手机抽屉内可见 |
+| **`0.1.0`** | `0.1.6-alpha.2` | `latest` | 首个版本：会话颜色标记、宿主侧存储、手机抽屉内可见 |
 
 - **已验证的 DeepSeek Harness** 是这个插件**实际跑过**的确切 DSH 版本。这份清单只有一个存放处——[`package.json`](package.json) 的 `dsh.compatibility.dshReleases`——并且有测试保证两个 README 的兼容性段落与它逐字一致、且落在 `peerDependencies` 声明的范围内。未列出的 DSH 版本**不会被宣称为兼容**。
 - `peerDependencies` 声明的范围是 `>=0.1.6-0 <0.2.0`（`dsh-client-ui-layout` 与 `dsh-client-ui-conversation`）：这是**允许加载**的范围，不等于已验证。

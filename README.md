@@ -3,7 +3,7 @@
 <p align="center">Give any Session a colour and spot it at a glance in the sidebar.</p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@idoall/dsh-session-colors"><img alt="npm" src="https://img.shields.io/badge/npm-not%20published-lightgrey"></a>
+  <a href="https://www.npmjs.com/package/@idoall/dsh-session-colors"><img alt="npm" src="https://img.shields.io/npm/v/@idoall/dsh-session-colors?label=npm&color=CB3837"></a>
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-0F172A"></a>
 </p>
 
@@ -71,9 +71,11 @@ Requirements:
 - Node.js 20 or newer
 - **Verified DSH version: `0.1.6-alpha.2`** (see [Compatibility](#compatibility))
 
-`@idoall/dsh-session-colors` is **not published on npm yet**, so install the
-repository directory for now (once published, the same plugin command installs
-the npm version):
+```sh
+dsh plugin --profile <profile> add @idoall/dsh-session-colors@0.1.0
+```
+
+Working on the plugin itself? Install the directory instead:
 
 ```sh
 dsh plugin --profile <profile> add link:/path/to/dsh-session-colors
@@ -117,7 +119,7 @@ Current release: plugin **`0.1.0`**, verified against DeepSeek Harness
 
 | Plugin version | Verified DeepSeek Harness | npm status | What it is |
 | --- | --- | --- | --- |
-| **`0.1.0`** | `0.1.6-alpha.2` | **Not published** (repository only) | First release: Session colour marks, Host-side storage, visible inside a phone's sidebar drawer |
+| **`0.1.0`** | `0.1.6-alpha.2` | `latest` | First release: Session colour marks, Host-side storage, visible inside a phone's sidebar drawer |
 
 - **Verified DeepSeek Harness** is the exact DSH version this plugin was actually
   run against. That list has one home — `dsh.compatibility.dshReleases` in
