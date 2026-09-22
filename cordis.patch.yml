@@ -1,0 +1,11 @@
+# Bundle mount for the Session-colours plugin: one Host-side entry.
+#
+# `name` is the Node-resolvable package name and must stay in sync with
+# package.json; `id` is the local mount id, so profile config keys keep the
+# short `dsh-session-colors` spelling.
+#
+# Durability needs a `dataDir` from the profile owner — see README.md. Without
+# it the routes still answer and marks live for the process only.
+- insert:
+    - id: dsh-session-colors
+      name: '@idoall/dsh-session-colors'

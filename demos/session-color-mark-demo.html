@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%23f3f4f5'/%3E%3Crect x='13' y='8' width='6' height='16' rx='2' fill='%23007AFF'/%3E%3C/svg%3E">
+  <title>会话颜色标记 · 选择器 Demo</title>
+  <style>
+    :root {
+      --page-bg: #eceef1;
+      --card: #ffffff;
+      --line: #d8d8dc;
+      --text: #1d1d1f;
+      --muted: #6e6e73;
+      --sidebar: #f6f7f9;
+      --row-hover: #e9ebef;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      padding: 32px 20px;
+      background: var(--page-bg);
+      color: var(--text);
+      font: 400 13px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, "PingFang SC", sans-serif;
+    }
+    .stage { display: flex; align-items: flex-start; gap: 28px; }
+    .hint { max-width: 300px; color: var(--muted); font-size: 12px; }
+    .hint h2 { margin: 0 0 8px; color: var(--text); font-size: 14px; }
+    .hint p { margin: 0 0 10px; }
+    .hint code { padding: 1px 4px; border-radius: 4px; background: #dfe2e7; font-size: 11px; }
+
+    /* ---- 侧栏会话行（Demo 用，几何与真实行一致）---- */
+    .demo-sidebar {
+      width: 280px;
+      padding: 10px 0;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--sidebar);
+      box-shadow: 0 18px 48px rgba(0,0,0,.12);
+    }
+    .demo-sidebar h3 {
+      margin: 0 0 6px;
+      padding: 4px 14px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .demo-row {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      /* 真实行：左 8px 内边距 + 16px 状态位 + 标题。色块画在左内边距里。 */
+      padding: 6px 12px 6px 8px;
+      cursor: pointer;
+    }
+    .demo-row:hover { background: var(--row-hover); }
+    .demo-row.is-active { background: var(--row-hover); }
+    .demo-dot {
+      flex: none;
+      width: 10px;
+      height: 10px;
+      margin-left: 3px;
+      border-radius: 50%;
+      background: #c9ccd2;
+    }
+    .demo-dot.is-running { background: #34c759; }
+    .demo-row .title {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .demo-row .time { flex: none; color: var(--muted); font-size: 11px; }
+    /* 色块：行内边距里的 4×16 竖条，与状态点互不重叠。 */
+    .demo-chip {
+      position: absolute;
+      left: 2px;
+      top: 50%;
+      width: 4px;
+      height: 16px;
+      margin-top: -8px;
+      border-radius: 2px;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.28);
+      background: transparent;
+    }
+
+    /* ---- 选择器面板（与插件内的样式一致）---- */
+    .dsh-sc-panel {
+      width: 268px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #f6f6f8;
+      color: var(--text);
+      box-shadow: 0 18px 48px rgba(0,0,0,.18);
+    }
+    .dsh-sc-title { margin: 0 0 10px; font-size: 13px; font-weight: 600; }
+    .dsh-sc-sv { position: relative; height: 128px; border-radius: 10px; overflow: hidden; cursor: crosshair; touch-action: none; }
+    .dsh-sc-sv-w, .dsh-sc-sv-b { position: absolute; inset: 0; pointer-events: none; }
+    .dsh-sc-sv-w { background: linear-gradient(to right,#fff,transparent); }
+    .dsh-sc-sv-b { background: linear-gradient(to bottom,transparent,#000); }
+    .dsh-sc-ring { position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 0 1px rgba(0,0,0,.4),0 1px 3px rgba(0,0,0,.3); pointer-events: none; }
+    .dsh-sc-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+    .dsh-sc-drop { width: 36px; height: 36px; flex: none; display: grid; place-items: center; padding: 0; border: 1px solid #d0d0d6; border-radius: 10px; background: #fff; color: #3a3a3c; cursor: pointer; }
+    .dsh-sc-drop[disabled] { opacity: .45; cursor: not-allowed; }
+    .dsh-sc-sliders { flex: 1; display: grid; gap: 8px; }
+    .dsh-sc-hue, .dsh-sc-alpha { position: relative; height: 12px; border-radius: 999px; touch-action: none; }
+    .dsh-sc-hue { background: linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00); }
+    .dsh-sc-alpha { background-image: linear-gradient(45deg,#c8c8cc 25%,transparent 25%,transparent 75%,#c8c8cc 75%),linear-gradient(45deg,#c8c8cc 25%,transparent 25%,transparent 75%,#c8c8cc 75%); background-size: 8px 8px; background-position: 0 0,4px 4px; }
+    .dsh-sc-alpha-fill { position: absolute; inset: 0; border-radius: 999px; }
+    .dsh-sc-knob { position: absolute; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border: 2px solid #fff; border-radius: 50%; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.25),0 1px 2px rgba(0,0,0,.25); pointer-events: none; }
+    .dsh-sc-fields { display: grid; grid-template-columns: 1.55fr repeat(4,1fr); gap: 4px; margin-top: 12px; }
+    .dsh-sc-field { display: grid; gap: 3px; min-width: 0; }
+    .dsh-sc-field span { color: var(--muted); font-size: 11px; }
+    .dsh-sc-field input { width: 100%; height: 28px; padding: 0 2px; border: 1px solid #d0d0d6; border-radius: 7px; background: #fff; color: var(--text); font-size: 11px; text-align: center; }
+    .dsh-sc-section { margin-top: 12px; padding-top: 10px; border-top: 1px solid #e5e5ea; }
+    .dsh-sc-section h4 { margin: 0 0 8px; color: var(--muted); font-size: 12px; font-weight: 600; }
+    .dsh-sc-swatches { display: flex; flex-wrap: wrap; gap: 7px; }
+    .dsh-sc-swatch { width: 22px; height: 22px; padding: 0; border: 1px solid rgba(0,0,0,.14); border-radius: 6px; cursor: pointer; background-image: linear-gradient(45deg,#c8c8cc 25%,transparent 25%,transparent 75%,#c8c8cc 75%),linear-gradient(45deg,#c8c8cc 25%,transparent 25%,transparent 75%,#c8c8cc 75%); background-size: 8px 8px; background-position: 0 0,4px 4px; }
+    .dsh-sc-swatch i { display: block; width: 100%; height: 100%; border-radius: 5px; }
+    .dsh-sc-add { width: 22px; height: 22px; padding: 0; border: 1px dashed #b0b0b8; border-radius: 6px; background: #fff; color: #3a3a3c; cursor: pointer; font-size: 16px; line-height: 1; }
+    .dsh-sc-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 10px; }
+    .dsh-sc-btn { height: 26px; padding: 0 10px; border: 1px solid #d0d0d6; border-radius: 7px; background: #fff; color: var(--text); cursor: pointer; font-size: 12px; }
+    @media (max-width: 720px) {
+      body { align-items: flex-start; }
+      .stage { flex-direction: column; align-items: center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <section class="demo-sidebar" aria-label="会话列表（示意）">
+      <h3>工作区 · dsh-session-colors</h3>
+      <div class="demo-row is-active" data-session="a">
+        <span class="demo-chip" id="chip-a"></span>
+        <span class="demo-dot is-running"></span>
+        <span class="title">重构选择器的字段栅格</span>
+        <span class="time">2 分钟</span>
+      </div>
+      <div class="demo-row" data-session="b">
+        <span class="demo-chip" id="chip-b"></span>
+        <span class="demo-dot"></span>
+        <span class="title">检查移动端抽屉里的色块</span>
+        <span class="time">1 小时</span>
+      </div>
+      <div class="demo-row" data-session="c">
+        <span class="demo-chip" id="chip-c"></span>
+        <span class="demo-dot"></span>
+        <span class="title">整理 README 的兼容性段落</span>
+        <span class="time">昨天</span>
+      </div>
+    </section>
+
+    <div class="dsh-sc-panel" role="dialog" aria-label="选择会话颜色">
+      <h4 class="dsh-sc-title">颜色标记</h4>
+      <div class="dsh-sc-sv" id="sv" role="presentation" aria-label="饱和度与明度">
+        <div class="dsh-sc-sv-w"></div>
+        <div class="dsh-sc-sv-b"></div>
+        <div class="dsh-sc-ring" id="ring"></div>
+      </div>
+      <div class="dsh-sc-row">
+        <button type="button" class="dsh-sc-drop" id="eyedrop" title="吸取屏幕颜色" aria-label="吸取屏幕颜色">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M3 21l6.5-6.5"></path>
+            <path d="M14.5 4.5l5 5"></path>
+            <path d="M12 7l5 5-7.5 7.5H4.5v-5L12 7z"></path>
+          </svg>
+        </button>
+        <div class="dsh-sc-sliders">
+          <div class="dsh-sc-hue" id="hue" role="presentation" aria-label="色相">
+            <div class="dsh-sc-knob" id="hue-knob"></div>
+          </div>
+          <div class="dsh-sc-alpha" id="alpha" role="presentation" aria-label="透明度">
+            <div class="dsh-sc-alpha-fill" id="alpha-fill"></div>
+            <div class="dsh-sc-knob" id="alpha-knob"></div>
+          </div>
+        </div>
+      </div>
+      <div class="dsh-sc-fields">
+        <label class="dsh-sc-field"><span>十六进制</span><input id="f-hex" spellcheck="false" value="#007AFF"></label>
+        <label class="dsh-sc-field"><span>R</span><input id="f-r" value="0"></label>
+        <label class="dsh-sc-field"><span>G</span><input id="f-g" value="122"></label>
+        <label class="dsh-sc-field"><span>B</span><input id="f-b" value="255"></label>
+        <label class="dsh-sc-field"><span>A</span><input id="f-a" value="100"></label>
+      </div>
+      <div class="dsh-sc-section">
+        <h4>主题颜色</h4>
+        <div class="dsh-sc-swatches" id="theme"></div>
+      </div>
+      <div class="dsh-sc-section">
+        <h4>我的颜色</h4>
+        <div class="dsh-sc-swatches" id="mine"></div>
+      </div>
+      <div class="dsh-sc-actions">
+        <button type="button" class="dsh-sc-btn" id="clear">清除标记</button>
+      </div>
+    </div>
+
+    <div class="hint">
+      <h2>这是设计期的独立 Demo</h2>
+      <p>面板与色块的样式和几何都照抄插件本体（<code>src/client.js</code>）：色块是行内边距里的 <code>4×16</code> 竖条，刻意避开状态点。</p>
+      <p>选中的颜色只作用于左侧示意列表，不写任何文件。真实插件把标记存在宿主上，所以电脑上选的颜色手机上也能看到。</p>
+      <p>点一行会话可切换正在编辑的标记；「清除标记」或最后一个透明色块可取消。</p>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      'use strict';
+      const THEME = [
+        ['#FF3B30', 1], ['#34C759', 1], ['#007AFF', 1], ['#FFCC00', 1],
+        ['#FFFFFF', 1], ['#000000', 1], ['#FFFFFF', 0],
+      ];
+      const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+      function hsvToRgb(h, s, v) {
+        const c = v * s;
+        const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+        const m = v - c;
+        let r = 0, g = 0, b = 0;
+        if (h < 60) { r = c; g = x; } else if (h < 120) { r = x; g = c; } else if (h < 180) { g = c; b = x; }
+        else if (h < 240) { g = x; b = c; } else if (h < 300) { r = x; b = c; } else { r = c; b = x; }
+        return [Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255)];
+      }
+      function rgbToHsv(r, g, b) {
+        const red = r / 255, green = g / 255, blue = b / 255;
+        const max = Math.max(red, green, blue), min = Math.min(red, green, blue), delta = max - min;
+        let h = 0;
+        if (delta !== 0) {
+          if (max === red) h = 60 * (((green - blue) / delta) % 6);
+          else if (max === green) h = 60 * ((blue - red) / delta + 2);
+          else h = 60 * ((red - green) / delta + 4);
+        }
+        if (h < 0) h += 360;
+        return { h, s: max === 0 ? 0 : delta / max, v: max };
+      }
+      const byteToHex = value => value.toString(16).padStart(2, '0').toUpperCase();
+      const toHex = color => {
+        const [r, g, b] = hsvToRgb(color.h, color.s, color.v);
+        return `#${byteToHex(r)}${byteToHex(g)}${byteToHex(b)}`;
+      };
+      function parseHex(raw) {
+        const value = String(raw).trim().replace(/^#/, '').toUpperCase();
+        if (!/^[0-9A-F]{3}$|^[0-9A-F]{6}$|^[0-9A-F]{8}$/.test(value)) return undefined;
+        const full = value.length === 3 ? value.split('').map(ch => ch + ch).join('') : value.slice(0, 6);
+        const a = value.length === 8 ? parseInt(value.slice(6, 8), 16) / 255 : 1;
+        return { ...rgbToHsv(parseInt(full.slice(0, 2), 16), parseInt(full.slice(2, 4), 16), parseInt(full.slice(4, 6), 16)), a };
+      }
+      const cssOf = color => {
+        if (color === undefined) return 'transparent';
+        const [r, g, b] = hsvToRgb(color.h, color.s, color.v);
+        return `rgba(${r}, ${g}, ${b}, ${color.a})`;
+      };
+
+      // 三个示意会话各自一份颜色；切换行即切换正在编辑的那份。
+      const marks = { a: parseHex('#007AFF'), b: parseHex('#34C759'), c: undefined };
+      const mine = [];
+      let active = 'a';
+      let draft = { ...marks.a };
+
+      const $ = id => document.getElementById(id);
+      const sv = $('sv'), hue = $('hue'), alpha = $('alpha');
+      const ring = $('ring'), hueKnob = $('hue-knob'), alphaKnob = $('alpha-knob'), alphaFill = $('alpha-fill');
+      const fields = { hex: $('f-hex'), r: $('f-r'), g: $('f-g'), b: $('f-b'), a: $('f-a') };
+
+      function paintChips() {
+        for (const [session, chip] of [['a', $('chip-a')], ['b', $('chip-b')], ['c', $('chip-c')]]) {
+          chip.style.background = cssOf(marks[session]);
+        }
+      }
+
+      function render() {
+        const [r, g, b] = hsvToRgb(draft.h, draft.s, draft.v);
+        const hueColor = `hsl(${draft.h} 100% 50%)`;
+        sv.style.background = hueColor;
+        ring.style.left = `${draft.s * 100}%`;
+        ring.style.top = `${(1 - draft.v) * 100}%`;
+        hueKnob.style.left = `${(draft.h / 360) * 100}%`;
+        alphaKnob.style.left = `${draft.a * 100}%`;
+        alphaFill.style.background = `linear-gradient(to right, transparent, ${hueColor})`;
+        if (document.activeElement !== fields.hex) fields.hex.value = toHex(draft);
+        if (document.activeElement !== fields.r) fields.r.value = String(r);
+        if (document.activeElement !== fields.g) fields.g.value = String(g);
+        if (document.activeElement !== fields.b) fields.b.value = String(b);
+        if (document.activeElement !== fields.a) fields.a.value = String(Math.round(draft.a * 100));
+        paintChips();
+      }
+
+      function commit(next) {
+        draft = next;
+        marks[active] = next;
+        render();
+      }
+
+      function swatchButton(color, label, onPick) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'dsh-sc-swatch';
+        button.setAttribute('aria-label', label);
+        const inner = document.createElement('i');
+        inner.style.background = cssOf(color);
+        button.append(inner);
+        button.addEventListener('click', onPick);
+        return button;
+      }
+
+      function buildSwatches() {
+        const theme = $('theme');
+        theme.replaceChildren();
+        THEME.forEach(([hex, alphaValue], index) => {
+          const color = { ...parseHex(hex), a: alphaValue };
+          theme.append(swatchButton(color, index === THEME.length - 1 ? '清除标记' : '主题颜色', () => commit(color)));
+        });
+        const mineBox = $('mine');
+        mineBox.replaceChildren();
+        mine.forEach(color => mineBox.append(swatchButton(color, '自定义颜色', () => commit(color))));
+        const add = document.createElement('button');
+        add.type = 'button';
+        add.className = 'dsh-sc-add';
+        add.setAttribute('aria-label', '把当前颜色加入我的颜色');
+        add.textContent = '+';
+        add.addEventListener('click', () => {
+          if (mine.some(item => toHex(item) === toHex(draft) && item.a === draft.a)) return;
+          mine.push({ ...draft });
+          buildSwatches();
+        });
+        mineBox.append(add);
+      }
+
+      function dragOn(node, read) {
+        const move = event => {
+          const box = node.getBoundingClientRect();
+          if (box.width === 0 || box.height === 0) return;
+          read(clamp((event.clientX - box.left) / box.width, 0, 1), clamp((event.clientY - box.top) / box.height, 0, 1));
+        };
+        const stop = () => {
+          window.removeEventListener('pointermove', move);
+          window.removeEventListener('pointerup', stop);
+        };
+        node.addEventListener('pointerdown', event => {
+          event.preventDefault();
+          try { node.setPointerCapture(event.pointerId); } catch (error) { /* 捕获只是锦上添花 */ }
+          move(event);
+          window.addEventListener('pointermove', move);
+          window.addEventListener('pointerup', stop);
+        });
+      }
+
+      dragOn(sv, (x, y) => commit({ ...draft, s: x, v: 1 - y }));
+      dragOn(hue, x => commit({ ...draft, h: x * 360 }));
+      dragOn(alpha, x => commit({ ...draft, a: x }));
+
+      fields.hex.addEventListener('change', () => {
+        const next = parseHex(fields.hex.value);
+        if (next !== undefined) commit({ ...next, a: draft.a });
+        render();
+      });
+      const channel = (key, read) => fields[key].addEventListener('change', () => {
+        const [r, g, b] = hsvToRgb(draft.h, draft.s, draft.v);
+        const next = clamp(Math.round(Number(fields[key].value) || 0), 0, 255);
+        commit({ ...read(r, g, b, next), a: draft.a });
+        render();
+      });
+      channel('r', (r, g, b, next) => rgbToHsv(next, g, b));
+      channel('g', (r, g, b, next) => rgbToHsv(r, next, b));
+      channel('b', (r, g, b, next) => rgbToHsv(r, g, next));
+      fields.a.addEventListener('change', () => {
+        const next = clamp(Math.round(Number(fields.a.value) || 0), 0, 100);
+        commit({ ...draft, a: next / 100 });
+        render();
+      });
+
+      $('clear').addEventListener('click', () => {
+        marks[active] = undefined;
+        draft = { h: 358, s: 0.68, v: 0.9, a: 1 };
+        render();
+      });
+
+      const eyedrop = $('eyedrop');
+      eyedrop.disabled = typeof window.EyeDropper !== 'function';
+      eyedrop.addEventListener('click', async () => {
+        try {
+          const picked = await new window.EyeDropper().open();
+          const next = parseHex(picked.sRGBHex);
+          if (next !== undefined) commit({ ...next, a: 1 });
+        } catch (error) { /* 用户取消了系统取色器 */ }
+      });
+
+      for (const row of document.querySelectorAll('.demo-row')) {
+        row.addEventListener('click', () => {
+          active = row.dataset.session;
+          for (const other of document.querySelectorAll('.demo-row')) other.classList.toggle('is-active', other === row);
+          draft = marks[active] === undefined ? { h: 358, s: 0.68, v: 0.9, a: 1 } : { ...marks[active] };
+          render();
+        });
+      }
+
+      buildSwatches();
+      render();
+    })();
+  </script>
+</body>
+</html>
