@@ -88,11 +88,12 @@ dsh plugin --profile <profile> add link:/path/to/dsh-session-colors
 
 ## 兼容性
 
-当前版本：插件 **`0.1.0`** 已针对 DeepSeek Harness **`0.1.6-alpha.2`** 验证。
+当前版本：插件 **`0.1.1`** 已针对 DeepSeek Harness **`0.1.6-alpha.2`** 验证。
 
 | 插件版本 | 已验证的 DeepSeek Harness | npm 发布状态 | 该版本是什么 |
 | --- | --- | --- | --- |
-| **`0.1.0`** | `0.1.6-alpha.2` | `latest` | 首个版本：会话颜色标记、宿主侧存储、手机抽屉内可见 |
+| **`0.1.1`** | `0.1.6-alpha.2` | `latest` | 仅文档：打包进 npm 的 README 不再写"尚未发布"，并声明了市场截图。无代码改动。 |
+| `0.1.0` | `0.1.6-alpha.2` | 已发布 | 首个版本：会话颜色标记、宿主侧存储、手机抽屉内可见 |
 
 - **已验证的 DeepSeek Harness** 是这个插件**实际跑过**的确切 DSH 版本。这份清单只有一个存放处——[`package.json`](package.json) 的 `dsh.compatibility.dshReleases`——并且有测试保证两个 README 的兼容性段落与它逐字一致、且落在 `peerDependencies` 声明的范围内。未列出的 DSH 版本**不会被宣称为兼容**。
 - `peerDependencies` 声明的范围是 `>=0.1.6-0 <0.2.0`（`dsh-client-ui-layout` 与 `dsh-client-ui-conversation`）：这是**允许加载**的范围，不等于已验证。
