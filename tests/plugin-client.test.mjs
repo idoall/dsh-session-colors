@@ -259,13 +259,30 @@ test('a malformed stored value is ignored instead of breaking the layer', async 
   store.dispose()
 })
 
-test('the row lookup reads the Session id from the fiber and skips unreadable rows', () => {
+test('the row lookup reads the Session id from the row key first, then the fiber', () => {
   const { exports } = loadClient()
-  // The row markup carries no id; the renderer keeps it on the fiber's props.
+  // DSH 0.1.7 puts `data-row-key="session:<id>"` on every Session row, which is
+  // the exact, stable source; the fiber is the fallback for a build without it
+  // (and for search-result rows, which carry no row key).
+  const keyed = { getAttribute: (name) => (name === 'data-row-key' ? 'session:session-key' : null) }
+  assert.equal(exports.sessionIdOf(keyed), 'session-key')
+  const keyedFiber = {
+    getAttribute: () => 'session:from-key',
+    __reactFiber$abc: { memoizedProps: { node: { id: 'from-fiber' } }, return: null },
+  }
+  assert.equal(exports.sessionIdOf(keyedFiber), 'from-key', 'the DOM key wins over the fiber')
+  // A workspace row's key is not a Session id and must not be mistaken for one.
+  assert.equal(exports.sessionIdOf({ getAttribute: () => 'workspace:group-1' }), undefined)
+  // The renderer keeps the id on the fiber's props for rows without a key.
   const row = { __reactFiber$abc: { memoizedProps: { node: { id: 'session-xyz' } }, return: null } }
   assert.equal(exports.sessionIdOf(row), 'session-xyz')
   assert.equal(exports.sessionIdOf({}), undefined)
   assert.equal(exports.sessionIdOf({ __reactFiber$abc: { memoizedProps: null, return: null } }), undefined)
+  // An attribute that throws must fall through to the fiber instead of losing the chip.
+  assert.equal(exports.sessionIdOf({
+    getAttribute: () => { throw new Error('detached') },
+    __reactFiber$abc: { memoizedProps: { node: { id: 'session-after-throw' } }, return: null },
+  }), 'session-after-throw')
   // A cyclic fiber chain must terminate rather than hang the layer.
   const loop = {}
   loop.__reactFiber$z = { memoizedProps: {}, return: loop.__reactFiber$z }
@@ -323,10 +340,11 @@ test('a DOM dump answers which build and channel state a device has', () => {
 })
 
 test('a device can report which build it runs without a debugger', () => {
-  // The old build stored marks in the browser and the build before this one
-  // painted the layer inside the shell overlay; telling them apart by eye is
-  // what makes "hard-refresh that device" an actionable answer.
-  assert.match(source, /const BUILD = 'host-routes\+drawer-aware'/)
+  // The old build stored marks in the browser, the one before this painted the
+  // layer inside the shell overlay, and this one follows DSH 0.1.7's animated
+  // rows; telling them apart by eye is what makes "hard-refresh that device" an
+  // actionable answer.
+  assert.match(source, /const BUILD = 'host-routes\+animated-rows'/)
   assert.match(source, /build=\$\{BUILD\}/)
   assert.match(source, /· \$\{BUILD\}/)
 })
@@ -402,10 +420,28 @@ test('each mutation option set gets its own observer', () => {
   assert.ok(watches.some((w) => /attributeFilter: \['class'\]/.test(w)), 'the phone drawer must be watched')
   assert.ok(watches.some((w) => /aria-expanded/.test(w)), 'a collapse that only hides rows must be watched')
   assert.equal(
-    [...source.matchAll(/new MutationObserver\(sync\)/g)].length,
+    [...source.matchAll(/new MutationObserver\(/g)].length,
     watches.length,
     'one observer per option set, or the options replace each other',
   )
+})
+
+test('the chip layer follows the animated rows DSH 0.1.7 introduced', () => {
+  // 0.1.7 glides sidebar rows with the Web Animations API
+  // (`element.animate`): no scroll, no resize, no child mutation, and neither
+  // `transitionrun` nor `transitionend`. The one MutationObserver callback for
+  // a collapse lands on the animation's first frame, when every row is still
+  // painted at its old coordinates, so a single re-measure would strand the
+  // chips. A row-list mutation and a resize must therefore open the same
+  // bounded follow window a CSS transition does.
+  assert.match(source, /const kick = \(\) => \{ sync\(\); follow\(\) \}/)
+  assert.match(source, /const onRowsMutation = \(records\) => \{ if \(rowsChanged\(records\)\) kick\(\); else sync\(\) \}/)
+  assert.match(source, /target\.closest\('\[role="tree"\]'\) !== null/)
+  assert.equal([...source.matchAll(/new MutationObserver\(kick\)/g)].length, 2, 'the drawer class and the row state')
+  assert.match(source, /addEventListener\('resize', kick\)/)
+  assert.match(source, /removeEventListener\('resize', kick\)/)
+  assert.match(source, /const SETTLE_FRAMES = \d+/)
+  assert.match(source, /cancelFrame\(frame\)/)
 })
 
 test('the chip layer follows a drawer that slides in without a DOM change', () => {
@@ -511,4 +547,24 @@ test('the declared package id matches package.json and the mount patch', () => {
     '@deepseek-ai/dsh-client-ui-layout',
     '@deepseek-ai/dsh-client-ui-conversation',
   ])
+})
+
+test('the Host dependency is declared the way DSH 0.1.7 resolves a linked plugin', () => {
+  // 0.1.7 resolves only a linked plugin's PEER dependencies from the running
+  // installation; a plain dependency is looked up under the plugin's own
+  // node_modules, which a `link:` install does not populate. With schemastery
+  // as a plain dependency the Host half failed to import and the plugin never
+  // loaded, so it must be a peer — plus a devDependency, so this repository's
+  // own tests still resolve it without the running installation.
+  const pkg = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'))
+  assert.equal(pkg.dependencies?.['@deepseek-ai/schemastery'], undefined)
+  assert.equal(typeof pkg.peerDependencies['@deepseek-ai/schemastery'], 'string')
+  assert.equal(typeof pkg.devDependencies['@deepseek-ai/schemastery'], 'string')
+  // The declared load range must actually admit the verified release: a range
+  // written for an older alpha excludes a newer prerelease under node-semver.
+  assert.equal(pkg.dsh.compatibility.dshReleases['0.1.7-alpha.2'], 'compatible')
+  assert.match(pkg.dsh.engines.dsh, /0\.1\.7/)
+  for (const peer of ['@deepseek-ai/dsh-client-ui-layout', '@deepseek-ai/dsh-client-ui-conversation']) {
+    assert.match(pkg.peerDependencies[peer], /0\.1\.7/)
+  }
 })

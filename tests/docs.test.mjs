@@ -20,6 +20,75 @@ function markdown(dir) {
   });
 }
 
+// --- the small part of node-semver this project's declarations need ---------
+// A comparator-set check with node-semver's prerelease rule: a version that
+// carries a prerelease is admitted only when some comparator in the set names
+// the same [major, minor, patch]. That rule is the whole reason a range like
+// `>=0.1.6-0 <0.2.0` must not be read as "any 0.1.x": it excludes every
+// `0.1.7-…` prerelease, which is what a DSH alpha release is.
+const VERSION = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/;
+const compareIdentifiers = (a, b) => {
+  const numeric = /^\d+$/;
+  if (numeric.test(a) && numeric.test(b)) return Number(a) - Number(b);
+  if (numeric.test(a)) return -1;
+  if (numeric.test(b)) return 1;
+  return a < b ? -1 : a > b ? 1 : 0;
+};
+function compareVersions(a, b) {
+  for (let index = 0; index < 3; index += 1) {
+    if (a.parts[index] !== b.parts[index]) return a.parts[index] - b.parts[index];
+  }
+  if (a.pre === undefined && b.pre === undefined) return 0;
+  // A release outranks its own prereleases.
+  if (a.pre === undefined) return 1;
+  if (b.pre === undefined) return -1;
+  const left = a.pre.split('.');
+  const right = b.pre.split('.');
+  for (let index = 0; index < Math.max(left.length, right.length); index += 1) {
+    if (left[index] === undefined) return -1;
+    if (right[index] === undefined) return 1;
+    const order = compareIdentifiers(left[index], right[index]);
+    if (order !== 0) return order;
+  }
+  return 0;
+}
+const parseVersion = raw => {
+  const match = VERSION.exec(raw.trim());
+  return match === null
+    ? null
+    : { parts: [Number(match[1]), Number(match[2]), Number(match[3])], pre: match[4] };
+};
+const sameTuple = (a, b) => a.parts.every((part, index) => part === b.parts[index]);
+const COMPARATOR = /^(>=|<=|>|<|\^)?\s*(.+)$/;
+/** Whether `version` satisfies a `||`-separated comparator set of `>=X <Y`/`^X` parts. */
+function satisfies(version, range) {
+  const target = parseVersion(version);
+  if (target === null) return false;
+  return range.split('||').some(alternative => {
+    const parts = alternative.trim().split(/\s+/).filter(Boolean).map((part) => {
+      const match = COMPARATOR.exec(part);
+      return match === null ? null : { op: match[1] ?? '=', version: parseVersion(match[2]) };
+    });
+    if (parts.some(part => part === null || part.version === null)) return false;
+    const holds = parts.every(({ op, version: bound }) => {
+      const order = compareVersions(target, bound);
+      if (op === '>=') return order >= 0;
+      if (op === '>') return order > 0;
+      if (op === '<=') return order <= 0;
+      if (op === '<') return order < 0;
+      if (op === '=') return order === 0;
+      // `^X` is `>=X` plus the next breaking bump; these ranges are all 0.1.x,
+      // so the next bump is the next minor.
+      return order >= 0 && compareVersions(target, { parts: [bound.parts[0], bound.parts[1] + 1, 0], pre: '0' }) < 0;
+    });
+    if (!holds) return false;
+    // Prerelease admission: only a comparator naming this exact tuple opens the
+    // gate, which is what a range written for a DSH alpha must do explicitly.
+    if (target.pre === undefined) return true;
+    return parts.some(({ version: bound }) => bound.pre !== undefined && sameTuple(bound, target));
+  });
+}
+
 test('the documents that describe what ships exist and are non-empty', () => {
   for (const p of core) assert.ok(read(p).trim().length > 100, p);
 });
@@ -97,12 +166,24 @@ test('both READMEs state the DSH versions this build is verified against', () =>
   const pkg = JSON.parse(read('package.json'));
   const verified = Object.keys(pkg.dsh.compatibility.dshReleases);
   assert.ok(verified.length > 0, 'package.json must declare at least one verified DSH release');
+  // The check below must have teeth: the range this release replaced does not
+  // admit the prerelease it was running on, while a plain 0.1.7 release does.
+  assert.equal(satisfies('0.1.7-alpha.2', '>=0.1.6-0 <0.2.0'), false, 'the replaced range must be rejected');
+  assert.equal(satisfies('0.1.6-alpha.2', '>=0.1.6-0 <0.2.0'), true);
+  assert.equal(satisfies('0.1.7', '>=0.1.6-0 <0.2.0'), true);
+  assert.equal(satisfies('0.2.0-alpha.1', '>=0.1.7-alpha.2 <0.2.0'), false, 'the upper bound still excludes 0.2');
   for (const release of verified) {
     assert.equal(pkg.dsh.compatibility.dshReleases[release], 'compatible', release);
-    // A "verified" claim must sit inside the range the package declares.
-    const core = release.split('-')[0];
+    // A "verified" claim must sit inside the range the package declares. The
+    // check is prerelease-aware on purpose: `>=0.1.6-0 <0.2.0` does NOT admit
+    // `0.1.7-alpha.2` under node-semver's default rule, which is how the plugin
+    // came to declare a peer range that pnpm reported as unmet for the DSH it was
+    // running on. A naive `includes('0.1.7')` would have passed it.
     for (const peer of ['@deepseek-ai/dsh-client-ui-layout', '@deepseek-ai/dsh-client-ui-conversation']) {
-      assert.ok(pkg.peerDependencies[peer].includes(core), `${peer} range must cover verified ${release}`);
+      assert.ok(
+        satisfies(release, pkg.peerDependencies[peer]),
+        `${peer} range ${pkg.peerDependencies[peer]} must admit verified ${release}`,
+      );
     }
   }
   for (const [name, body] of [['README.md', read('README.md')], ['README.zh.md', read('README.zh.md')]]) {
