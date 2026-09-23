@@ -15,12 +15,13 @@
  *   `ChipsLayer` and `layerZIndexOf`.
  *
  * There is no Session-row slot, so a chip cannot be rendered inside a row. The
- * layer finds rows by ARIA role and reads each row's Session id from the React
- * fiber the renderer already attached — the only place the id exists, since the
- * row markup carries no id attribute. That coupling is deliberate and is kept
- * harmless: every step is guarded, an unreadable row is skipped, and the layer
- * never accepts pointer events, so a future DSH change can at worst stop the
- * chips from appearing.
+ * layer finds rows by ARIA role and reads each row's Session id from the
+ * `data-row-key` attribute DSH 0.1.7 puts on every row (`session:<id>`),
+ * falling back to the React fiber the renderer attaches — the only source on a
+ * build without that attribute, and still the source for search-result rows.
+ * That coupling is deliberate and is kept harmless: every step is guarded, an
+ * unreadable row is skipped, and the layer never accepts pointer events, so a
+ * future DSH change can at worst stop the chips from appearing.
  *
  * Written as a hand-authored `__ModuleLoader__` bundle (the only format the
  * client loader accepts for a package client half), so it needs no build step.
@@ -46,13 +47,13 @@ window.__ModuleLoader__.load({
 
     const NS = 'sessionColor'
     /**
-     * Build marker. Stored marks are Host-side as of this build, and the chip
-     * layer paints just above the sidebar as of the `drawer-aware` build — the
-     * change that makes a chip visible inside a phone's sidebar drawer. A device
-     * that still shows an older marker is running a cached client and must be
-     * hard-refreshed.
+     * Build marker. Stored marks are Host-side as of the `host-routes` build,
+     * the chip layer paints just above the sidebar as of `drawer-aware`, and as
+     * of `animated-rows` it follows the Web-Animations row gliding DSH 0.1.7
+     * introduced. A device that still shows an older marker is running a cached
+     * client and must be hard-refreshed.
      */
-    const BUILD = 'host-routes+drawer-aware'
+    const BUILD = 'host-routes+animated-rows'
 
     /**
      * This plugin's own Host route. Kept in sync with the Host half's
@@ -429,13 +430,28 @@ window.__ModuleLoader__.load({
 
     //#region row discovery
     /**
-     * Session id of a rendered row, read from the React fiber the renderer
-     * already attached. The row markup deliberately carries no id, so the fiber
-     * is the only exact source; the walk is bounded and every failure returns
-     * undefined, which makes the caller skip that row.
+     * Prefix DSH 0.1.7 uses for a Session row's `data-row-key`. It is the
+     * exact, stable DOM source of a row's Session id; older builds and
+     * search-result rows carry no such attribute.
+     */
+    const SESSION_ROW_KEY = 'session:'
+
+    /**
+     * Session id of a rendered row. The `data-row-key` attribute is read first
+     * because DSH 0.1.7 marks every row with it; the React fiber the renderer
+     * already attached remains the fallback, and the walk is bounded so an
+     * unexpected shape only costs that row its chip.
      * @param node - a Session row element.
      */
     function sessionIdOf(node) {
+      try {
+        const key = node === null || node === undefined || typeof node.getAttribute !== 'function'
+          ? undefined
+          : node.getAttribute('data-row-key')
+        if (typeof key === 'string' && key.startsWith(SESSION_ROW_KEY)) return key.slice(SESSION_ROW_KEY.length)
+      } catch {
+        // An unreadable attribute only sends this row to the fiber fallback.
+      }
       try {
         const key = Object.keys(node).find((name) => name.startsWith('__reactFiber$') || name.startsWith('__reactInternalInstance$'))
         if (key === undefined) return undefined
@@ -603,10 +619,23 @@ window.__ModuleLoader__.load({
           setLayer({ items, clip, zIndex: rows.length === 0 ? 1 : layerZIndexOf(rows[0]) })
         }
         sync()
+        /**
+         * Re-measure now, then keep re-measuring for a bounded window.
+         *
+         * DSH 0.1.7 glides rows with the Web Animations API
+         * (`element.animate`): that fires neither `transitionrun` nor
+         * `transitionend` and mutates no DOM, so the one MutationObserver
+         * callback for a collapse lands on the animation's first frame — every
+         * row still painted at its old coordinates — and nothing would ever
+         * report the movement again. Following each mutation for the same
+         * bounded window as a transition keeps the chips on their rows.
+         */
+        const kick = () => { sync(); follow() }
         // Rows move with their scroll container and re-render on every list
-        // change, so follow both.
+        // change, so follow both. A scroll reports its own frames continuously,
+        // so it needs no follow window of its own.
         document.addEventListener('scroll', sync, true)
-        window.addEventListener('resize', sync)
+        window.addEventListener('resize', kick)
         // A CSS transition moves every row without any scroll, resize or DOM
         // mutation: the phone adapter slides the whole sidebar in with a
         // transform on the drawer while the rows themselves never change. Only
@@ -629,19 +658,33 @@ window.__ModuleLoader__.load({
         // the peer poll happened to re-render the layer ~20s later.
         const observers = []
         try {
-          const rowsObserver = new MutationObserver(sync)
+          /**
+           * Whether a mutation could have changed the row list, and so started a
+           * row glide. The childList watch is body-wide because rows live deep
+           * inside the sidebar, so a mutation unrelated to the list — a
+           * streaming transcript, a tooltip — re-measures once but must not open
+           * a follow window for every frame it produces.
+           */
+          const rowsChanged = (records) => records.some((record) => {
+            const target = record.target
+            return target !== null && target !== undefined
+              && typeof target.closest === 'function'
+              && target.closest('[role="tree"]') !== null
+          })
+          const onRowsMutation = (records) => { if (rowsChanged(records)) kick(); else sync() }
+          const rowsObserver = new MutationObserver(onRowsMutation)
           rowsObserver.observe(document.body, { childList: true, subtree: true })
           observers.push(rowsObserver)
           // The phone adapter opens its drawer by toggling a class on `body`.
           // With transitions disabled the geometry still changes, just without a
           // transition event to follow.
-          const drawerObserver = new MutationObserver(sync)
+          const drawerObserver = new MutationObserver(kick)
           drawerObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] })
           observers.push(drawerObserver)
           // A workspace collapse that hides rows instead of removing them
           // produces no childList mutation, so follow the ARIA state and
           // `hidden` as well.
-          const stateObserver = new MutationObserver(sync)
+          const stateObserver = new MutationObserver(kick)
           stateObserver.observe(document.body, { attributes: true, attributeFilter: ['aria-expanded', 'hidden'], subtree: true })
           observers.push(stateObserver)
         } catch {
@@ -650,7 +693,7 @@ window.__ModuleLoader__.load({
         return () => {
           cancelFrame(frame)
           document.removeEventListener('scroll', sync, true)
-          window.removeEventListener('resize', sync)
+          window.removeEventListener('resize', kick)
           document.removeEventListener('transitionrun', onTransition, true)
           document.removeEventListener('transitionend', onTransition, true)
           for (const watcher of observers) watcher.disconnect()

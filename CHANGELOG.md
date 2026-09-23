@@ -8,6 +8,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-09-23
+
+Verified against DeepSeek Harness `0.1.7-alpha.2`. The first fix below is what
+made the previous build fail to load on that release; the other two are a
+declaration correctness fix and a visible behaviour fix.
+
+### Fixed
+
+- **The plugin could not load from a `link:` install on DSH 0.1.7.** From 0.1.7,
+  only a linked plugin's **peer** dependencies resolve from the running
+  installation; a plain dependency is looked up under the plugin's own
+  `node_modules`, which a link install does not populate. `@deepseek-ai/schemastery`
+  was a plain dependency and this repository ships no `node_modules`, so the Host
+  half failed to import and the plugin never loaded. It is a peer now (kept in
+  `devDependencies` for this repository's own tests).
+- **The declared peer range excluded the release it was running on.**
+  `>=0.1.6-0 <0.2.0` does **not** admit `0.1.7-alpha.2` under node-semver's
+  default prerelease rule, so pnpm reports the peer as unmet (the plugin market's
+  discovery check passes `includePrerelease`, which is why it did not surface as
+  an outright incompatibility). The range is now `>=0.1.7-alpha.2 <0.2.0`, with a
+  `dsh.engines.dsh` requirement and `dsh.compatibility.dshReleases` recording
+  `0.1.7-alpha.2`.
+- **Chips no longer stayed behind while rows glided.** DSH 0.1.7 moves sidebar
+  rows with the Web Animations API (`element.animate`), which fires neither
+  `transitionrun` nor `transitionend` and mutates no DOM. The layer only opened
+  its bounded follow window on a transition event, so a collapse, expand or
+  reorder left every chip at the position the glide started from. A row-list
+  mutation and a window resize now re-measure once and enter the same 40-frame
+  follow window; an unrelated body mutation re-measures once but opens no window,
+  so a streaming transcript cannot keep a measuring loop alive.
+
+### Changed
+
+- The Session id is read from the row's own `data-row-key` (`session:<id>`, added
+  in DSH 0.1.7) before falling back to the React fiber, so the common case no
+  longer depends on React internals. The fiber fallback remains for older builds
+  and search-result rows.
+- The client build marker is `host-routes+animated-rows`.
+- The docs-consistency test now evaluates the peer range with the prerelease
+  rule instead of a substring check — the check that let the old, excluding range
+  pass.
+
+### Notes
+
+- `0.1.3` supports DSH `0.1.7-alpha.2` only and declares
+  `>=0.1.7-alpha.2 <0.2.0` as its Host requirement. Installations on an older DSH,
+  including `0.1.6-alpha.2`, should stay on plugin `0.1.2`.
+
 ## [0.1.2] - 2026-09-22
 
 ### Fixed

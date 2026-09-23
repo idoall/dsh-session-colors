@@ -51,7 +51,7 @@
 
 - 带 Web profile 的 DeepSeek Harness
 - Node.js 20 或更新版本
-- **已验证的 DSH 版本：`0.1.6-alpha.2`**（见[兼容性](#兼容性)）
+- **已验证的 DSH 版本：`0.1.7-alpha.2`**（见[兼容性](#兼容性)）
 
 ```sh
 dsh plugin --profile <profile> add @idoall/dsh-session-colors@latest
@@ -90,16 +90,20 @@ dsh plugin --profile <profile> add link:/path/to/dsh-session-colors
 
 ## 兼容性
 
-当前版本：插件 **`0.1.2`** 已针对 DeepSeek Harness **`0.1.6-alpha.2`** 验证。
+当前版本：插件 **`0.1.3`** 已针对 DeepSeek Harness **`0.1.7-alpha.2`** 验证。
+
+**`0.1.3` 只支持 DSH `0.1.7-alpha.2`。** 更旧的 DSH（包括 `0.1.6-alpha.2`）请继续用插件 **`0.1.2`**：`0.1.3` 声明的宿主要求是 `>=0.1.7-alpha.2 <0.2.0`，低于它的版本未经本轮验证。
 
 | 插件版本 | 已验证的 DeepSeek Harness | npm 发布状态 | 该版本是什么 |
 | --- | --- | --- | --- |
-| **`0.1.2`** | `0.1.6-alpha.2` | `latest` | 修掉折叠/展开工作区后色块停在旧位置约 20 秒：同一个 target 上第二次 `MutationObserver.observe()` 把 `childList` 监听顶掉了。 |
+| **`0.1.3`** | `0.1.7-alpha.2` | `latest` | 适配 DSH 0.1.7：会话 id 改从行自身的 `data-row-key` 读取（保留 fiber 回退），色块跟随 0.1.7 引入的 Web Animations 行滑动；宿主依赖按 0.1.7 对 link 插件的解析方式声明，peer 范围也真正覆盖该版本。 |
+| `0.1.2` | `0.1.6-alpha.2` | 已发布 | 修掉折叠/展开工作区后色块停在旧位置约 20 秒：同一个 target 上第二次 `MutationObserver.observe()` 把 `childList` 监听顶掉了。 |
 | `0.1.1` | `0.1.6-alpha.2` | 已发布 | 仅文档：打包进 npm 的 README 不再写"尚未发布"，并声明了市场截图。 |
 | `0.1.0` | `0.1.6-alpha.2` | 已发布 | 首个版本：会话颜色标记、宿主侧存储、手机抽屉内可见 |
 
 - **已验证的 DeepSeek Harness** 是这个插件**实际跑过**的确切 DSH 版本。这份清单只有一个存放处——[`package.json`](package.json) 的 `dsh.compatibility.dshReleases`——并且有测试保证两个 README 的兼容性段落与它逐字一致、且落在 `peerDependencies` 声明的范围内。未列出的 DSH 版本**不会被宣称为兼容**。
-- `peerDependencies` 声明的范围是 `>=0.1.6-0 <0.2.0`（`dsh-client-ui-layout` 与 `dsh-client-ui-conversation`）：这是**允许加载**的范围，不等于已验证。
+- `peerDependencies` 声明的范围是 `>=0.1.7-alpha.2 <0.2.0`（`dsh-client-ui-layout` 与 `dsh-client-ui-conversation`），`dsh.engines.dsh` 把同一范围声明为宿主要求：这是**允许加载**的范围，不等于已验证。下界特意写成 alpha 版本——按 node-semver 的默认预发布规则，`>=0.1.6-0 <0.2.0` 这样的范围**并不包含** `0.1.7-alpha.2`，pnpm 会把 peer 报成 unmet，即使插件实际跑得起来。
+- `@deepseek-ai/schemastery` 声明为 **peer**，不是普通依赖：DSH 0.1.7 只把 link 插件的 **peer** 依赖解析到运行实例，所以用 `link:` 装入本目录时，普通依赖会让宿主半边 import 失败。
 - DSH 升级快于插件时，插件本身不会因此报错：色块依赖 DSH 的行 DOM（见[限制](#限制)），所以 DSH 大改行结构时最坏的结果是**色块不再显示**，不会挡住点击。
 
 ## 跨设备与局域网
@@ -143,7 +147,7 @@ document.querySelector('.dsh-sc-layer').dataset
 // { dshScBuild, dshScStatus, dshScWritable, dshScMarks, dshScError }
 ```
 
-`dshScBuild` 不是 `host-routes+drawer-aware` 就是**客户端缓存**，刷新页面即可（客户端半边刷新即热重载，不需要重启 DSH）。`dshScStatus` 不是 `ready` 则是存储读不到，见下一条。
+`dshScBuild` 不是 `host-routes+animated-rows` 就是**客户端缓存**，刷新页面即可（客户端半边刷新即热重载，不需要重启 DSH）。`dshScStatus` 不是 `ready` 则是存储读不到，见下一条。
 
 **头部控制显示 ⚠。**
 表示读不到存储：`dshScError` 里有原因，`dshScWritable` 说明能不能写。宿主路由未注册（插件没被 profile 加载）或数据目录不可写时会这样。注意**这不是**"这个会话没有颜色"。
@@ -152,7 +156,7 @@ document.querySelector('.dsh-sc-layer').dataset
 从 `0.1.0` 起本插件在局域网/隧道页面与回环页面行为一致（存储走自有路由）。如果你看到的是旧版那种"设置读不到"的表现，先确认装的是哪个版本。
 
 **色块位置不对或消失。**
-色块浮层靠 ARIA role 找会话行、靠 React fiber 取会话 ID。DSH 大改侧栏结构后可能找不到行；此时色块会消失，但**不会影响点击**，因为浮层是点击穿透的。
+色块浮层靠 ARIA role 找会话行、靠行自身的 `data-row-key` 取会话 ID（取不到时回退到 React fiber）。DSH 大改侧栏结构后可能找不到行；此时色块会消失，但**不会影响点击**，因为浮层是点击穿透的。
 
 ## 安全边界
 
@@ -164,7 +168,7 @@ document.querySelector('.dsh-sc-layer').dataset
 
 ## 限制
 
-- **色块依赖 DSH 的行 DOM。** 它靠 ARIA role 找行、靠 React 内部结构取会话 ID。DSH 未来改版可能让色块不再显示；但**不会影响点击**。
+- **色块依赖 DSH 的行 DOM。** 它靠 ARIA role 找行、靠行自身的 `data-row-key` 取会话 ID（回退到 React 内部结构）。DSH 未来改版可能让色块不再显示；但**不会影响点击**。
 - **标记属于单个 DSH 实例。** 它存在某个 profile 的数据目录里，两个独立的 DSH 服务之间不共享。
 - **没有权限模型。** 凡是能访问该 profile 已鉴权路由的人，都能读写标记。
 - **只有颜色。** 没有文字标签、图标或 emoji。
@@ -180,7 +184,7 @@ dsh plugin --profile <profile> remove @idoall/dsh-session-colors
 ## 开发
 
 ```sh
-npm test        # 34 项：bundle 结构、存储、路由、跨设备、几何、文档一致性
+npm test        # 38 项：bundle 结构、存储、路由、跨设备、几何、文档一致性
 ```
 
 浏览器半边是**手写的** `__ModuleLoader__` bundle——这是 DSH 客户端加载器接受的唯一格式。手写是刻意的：**没有构建步骤**，就不会有产物与目标 DSH 版本漂移的问题。

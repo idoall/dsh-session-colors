@@ -27,8 +27,8 @@
 | `cordis.patch.yml` | `insert` 挂载（与 `dsh-notify` 同构） |
 | `src/index.js` | Host 半边：**刻意无状态**，不写任何 Session 事件、不注册 Host 服务 |
 | `src/client.js` | 浏览器半边：手写 `__ModuleLoader__` bundle（**免构建**），只 require `react` 与 `react-dom`（都是 DSH web shell 的 static module） |
-| `tests/plugin-client.test.mjs` | 26 项：bundle 结构、两个 seat、缺 slot 降级、按 Host/Session 分键、清除、快照引用稳定、未解析 Host 不落盘、坏数据忽略、fiber 取 id（含环终止）、颜色换算、色块几何、层叠层级、portal、手机抽屉跟随、hex 字段宽度、Host 半边、包名/挂载一致性 |
-| `tests/docs.test.mjs` | 8 项：`docs/` 只放设计记录与图片、全部本地 Markdown 链接与锚点可达、两个 README 互相链接并写明安装、两个 README 的兼容性版本与 `dsh.compatibility.dshReleases` 逐字一致、三张 README 截图的签名与尺寸、Demo 的静态卫生（单一 inline script、id 唯一、无外部引用） |
+| `tests/plugin-client.test.mjs` | 29 项：bundle 结构、两个 seat、缺 slot 降级、按 Host/Session 分键、清除、快照引用稳定、未解析 Host 不落盘、坏数据忽略、`data-row-key` 取 id（含 fiber 回退与环终止）、颜色换算、色块几何、层叠层级、portal、手机抽屉跟随、动画行跟随、hex 字段宽度、Host 半边、包名/挂载一致性、link 插件依赖声明 |
+| `tests/docs.test.mjs` | 9 项：`docs/` 只放设计记录与图片、全部本地 Markdown 链接与锚点可达、两个 README 互相链接并写明安装、两个 README 的兼容性版本与 `dsh.compatibility.dshReleases` 逐字一致（含预发布范围判断）、三张 README 截图的签名与尺寸、Demo 的静态卫生（单一 inline script、id 唯一、无外部引用） |
 
 ### 两个界面，都走公开 slot
 
@@ -41,10 +41,11 @@
 
 ### 行内色块怎么定位（这是唯一有耦合的部分）
 
-alpha.2 没有会话行 slot，行的 DOM 也**不暴露 session id**（实测：侧栏 24 个会话行，全侧栏 0 个带 id 形态值的属性）。所以浮层靠两件事对齐：
+DSH 0.1.6 没有会话行 slot，行的 DOM 也**不暴露 session id**（当时实测：侧栏 24 个会话行，全侧栏 0 个带 id 形态值的属性）。0.1.7 给每个会话行加了 `data-row-key="session:<id>"`，所以浮层现在靠：
 
 1. `[role="treeitem"][aria-selected]` 找到渲染出来的会话行（ARIA，非哈希类名）；
-2. 从行的 React fiber 读 `memoizedProps.node.id` 拿**精确** session id（实测可得，如 `session-0698599a-418…`）。
+2. 先读行自身的 `data-row-key`（`session:` 前缀）拿**精确** session id；
+3. 读不到时回退到 React fiber 的 `memoizedProps.node.id`——旧构建与搜索结果行（无 `data-row-key`）走这条路径。
 
 这一层耦合是**故意且无害的**：每一步都有 `try/catch`，读不到就跳过该行；浮层不接受指针事件，所以最坏情况只是色块不显示，不会挡住点击、不会弄坏侧栏。长期正道是向上游提一个 `sessions.row.*` slot 需求。
 
@@ -93,6 +94,22 @@ observer.observe(document.body, { attributes: true, attributeFilter: ['class'] }
 **修法**：每个 options 组合各用一个 observer（行增删 / body class / `aria-expanded` 与 `hidden`），并在卸载时逐个 disconnect。第三个观察是给"只隐藏不移除"的折叠方式留的后路，`aria-expanded` 正是工作区展开折叠的语义信号。
 
 **实测验收**（真实 GUI，1200×900）：折叠 → 色块在 1 秒内消失（原先 20 秒）；展开 → 1 秒内出现；手机抽屉路径复验仍正常（`z=10001`、`pointer-events:none`、抽屉内可见）。回归测试守住"每个 options 组合必须有独立 observer"。
+
+### 适配 DSH 0.1.7-alpha.2（2026-09-23）
+
+DSH 升级到 `0.1.7-alpha.2` 后，插件有三处直接受影响：① 会让旧构建**装不上**（`link:` 装入后宿主半边 import 失败），② 是声明错误（peer 范围按 node-semver 默认规则不覆盖运行版本，pnpm 报 unmet peer），③ 是可见的行为回退（折叠/展开/重排时色块停在滑动起点）。三处都从运行实例的源码/清单里核实过，不是猜测：
+
+| # | 0.1.7 的变化（源码位置） | 对旧构建的影响 | 修法 |
+| --- | --- | --- | --- |
+| ① | link 插件的依赖解析：`packages/boot/app-boot/src/profile-resolution/resolver.ts` 里 `readLinkedPeerNames()`——只有 link 包 `peerDependencies` 里列的名字才在拦截层被"占用"并解析到运行实例，普通 `dependencies` 只在插件自己的 `node_modules` 下找 | `@deepseek-ai/schemastery` 原本是普通依赖，而本仓库不带 `node_modules`，`link:` 装入后宿主半边 `ERR_MODULE_NOT_FOUND`，**插件根本不加载** | 把 schemastery 移到 `peerDependencies`（另留 `devDependencies` 供本仓库自测）。运行实例的解析表里确实有 `@deepseek-ai/schemastery 3.18.4`（`createRuntimeResolution()` 实测），所以 peer 能解析到它 |
+| ② | 预发布版本的范围语义：带预发布的版本只有在某个比较符写了**同一个 `major.minor.patch`** 时才被纳入（node-semver 默认规则） | 旧范围 `>=0.1.6-0 <0.2.0` **不包含** `0.1.7-alpha.2`，pnpm 报 unmet peer。市场的发现流程传了 `includePrerelease`，所以它显示"未知"而不是"不兼容"——但声明仍然不该这么写 | 范围改为 `>=0.1.7-alpha.2 <0.2.0`，新增 `dsh.engines.dsh`；文档一致性测试也从 `includes()` 字符串判断改成带预发布规则的比较器集合判断 |
+| ③ | 侧栏行变成动画行：`Rows.tsx` 给每个会话行加 `data-row-key="session:<id>"`；`AnimatedRows.tsx` 用 `element.animate()` 滑动行（Web Animations API 既不发 `transitionrun`/`transitionend`，也不改 DOM） | 浮层只在过渡事件里进入有限跟随循环，而折叠的那次 MutationObserver 回调落在动画第一帧——此时所有行还画在旧坐标，之后没有任何事件再报告滑动，色块就停在原地 | 行列表内的变更与窗口 resize 统一走 `kick()`：先立即重算一次，再进入与 CSS 过渡相同的 40 帧有限跟随循环；`rowsChanged()` 只把落在 `[role="tree"]` 里的 childList 变更算作行列表变更，其他 body 变更只重算一次、不开窗口，流式输出不会让测量循环常驻；同时 `sessionIdOf()` 优先读 `data-row-key`，fiber 降级为回退 |
+
+构建标记随之改为 `host-routes+animated-rows`，设备上的 DOM dump 能区分"缓存客户端"。
+
+**实测验收（2026-09-23，运行实例 0.1.7-alpha.2，视口 2056×1027）**：`dsh plugin --profile web add link:…` 装入后，运行中的实例（`patchReload: live`）**热挂载**成功——boot 图里出现 `@idoall/dsh-session-colors`，控制台打印 `build=host-routes+animated-rows marks route status=ready`，说明宿主半边的 peer 解析路径成立（无需先重启）。选择器从会话头部打开正常；点主题色后该会话行出现色块，实测 `left=14px`（行 `left=12` + 2）、`top=250`（行 `top=242` + (32−16)/2）、颜色 `rgb(52,199,89)`、浮层父节点 `BODY`、`z=1`、`pointer-events:none`。跟随验证用真实折叠触发 `AnimatedRows` 的 WAAPI 滑动：被标记行逐帧从 `top=564` 移到 `530`（22 个不同取值），色块同步从 `572` 跟到 `538`，逐帧差值恒为 8–10px（亚像素取整），即色块始终贴在行上。验证用的临时标记已清除，宿主文件回到 `{"version":1,"marks":{}}`。
+
+**为什么 schemastery 用 peer 而不是"依赖 + 自带 node_modules"**：`link:` 装入不会把被 link 包的依赖装进 profile，本仓库也不发布 `node_modules`；而 0.1.7 明确把 link 包的 peer 解析到运行实例。声明成 peer 后，本目录 `link:` 装入即可用，运行实例的 schemastery 版本（3.18.4）就是实际使用的那份；本仓库自己的 `pnpm install` 仍通过 `devDependencies` 拿到它跑测试。
 
 ### 为什么选择器注册在 utilities 而不是 actions
 

@@ -69,7 +69,7 @@ Requirements:
 
 - DeepSeek Harness with a Web profile
 - Node.js 20 or newer
-- **Verified DSH version: `0.1.6-alpha.2`** (see [Compatibility](#compatibility))
+- **Verified DSH version: `0.1.7-alpha.2`** (see [Compatibility](#compatibility))
 
 ```sh
 dsh plugin --profile <profile> add @idoall/dsh-session-colors@latest
@@ -117,12 +117,17 @@ stored as HSVA, so alpha round-trips exactly.
 
 ## Compatibility
 
-Current release: plugin **`0.1.2`**, verified against DeepSeek Harness
-**`0.1.6-alpha.2`**.
+Current release: plugin **`0.1.3`**, verified against DeepSeek Harness
+**`0.1.7-alpha.2`**.
+
+**`0.1.3` supports DSH `0.1.7-alpha.2` only.** On an older DSH — including
+`0.1.6-alpha.2` — keep plugin **`0.1.2`**: `0.1.3` declares its Host requirement
+as `>=0.1.7-alpha.2 <0.2.0` and is not verified below it.
 
 | Plugin version | Verified DeepSeek Harness | npm status | What it is |
 | --- | --- | --- | --- |
-| **`0.1.2`** | `0.1.6-alpha.2` | `latest` | Fixes chips staying at their old coordinates for ~20s when a workspace is collapsed or expanded: a second `MutationObserver.observe()` on the same target had silently replaced the `childList` watch. |
+| **`0.1.3`** | `0.1.7-alpha.2` | `latest` | Adapts to DSH 0.1.7: the Session id now comes from the row's own `data-row-key` (fiber fallback kept), and chips follow the Web-Animations row gliding `0.1.7` introduced. The Host dependency is declared the way `0.1.7` resolves a linked plugin, and the peer range admits the release. |
+| `0.1.2` | `0.1.6-alpha.2` | published | Fixes chips staying at their old coordinates for ~20s when a workspace is collapsed or expanded: a second `MutationObserver.observe()` on the same target had silently replaced the `childList` watch. |
 | `0.1.1` | `0.1.6-alpha.2` | published | Documentation only: the packaged README no longer says "not published", and the market screenshots are declared. |
 | `0.1.0` | `0.1.6-alpha.2` | published | First release: Session colour marks, Host-side storage, visible inside a phone's sidebar drawer |
 
@@ -131,9 +136,17 @@ Current release: plugin **`0.1.2`**, verified against DeepSeek Harness
   [`package.json`](package.json) — and a test keeps both READMEs' compatibility
   sections word-for-word with it and inside the range `peerDependencies`
   declares. A DSH version that is not listed is **never claimed as compatible**.
-- `peerDependencies` declares `>=0.1.6-0 <0.2.0` for `dsh-client-ui-layout` and
-  `dsh-client-ui-conversation`: that is the range allowed to **load**, which is
-  not the same as verified.
+- `peerDependencies` declares `>=0.1.7-alpha.2 <0.2.0` for `dsh-client-ui-layout`
+  and `dsh-client-ui-conversation`, and `dsh.engines.dsh` declares the same range
+  as the Host requirement: that is the range allowed to **load**, which is not the
+  same as verified. The lower bound names the alpha on purpose — under
+  node-semver's default prerelease rule a range like `>=0.1.6-0 <0.2.0` does
+  **not** admit `0.1.7-alpha.2`, so pnpm reports the peer as unmet even though the
+  plugin runs.
+- `@deepseek-ai/schemastery` is a **peer**, not a plain dependency: DSH 0.1.7
+  resolves only a linked plugin's peer dependencies from the running
+  installation, so a `link:` install of this directory would otherwise fail to
+  import the Host half.
 - DSH moving faster than this plugin does not break it: chips depend on DSH's row
   DOM (see [Limitations](#limitations)), so a large change to the row structure
   can at worst stop chips from appearing — it cannot block clicking.
@@ -187,7 +200,7 @@ document.querySelector('.dsh-sc-layer').dataset
 // { dshScBuild, dshScStatus, dshScWritable, dshScMarks, dshScError }
 ```
 
-If `dshScBuild` is not `host-routes+drawer-aware`, the device is running a
+If `dshScBuild` is not `host-routes+animated-rows`, the device is running a
 **cached client**: refresh the page (the browser half reloads on a refresh, no DSH
 restart needed). If `dshScStatus` is not `ready`, the store cannot be read — see
 the next item.
@@ -204,9 +217,10 @@ pages, because storage uses its own route. If you see the old "settings
 unavailable" behaviour, check which version is installed.
 
 **Chips are in the wrong place, or gone.**
-The layer finds rows by ARIA role and reads the Session id from the React fiber.
-A large change to DSH's sidebar structure can make it find nothing; chips then
-disappear, but **clicking is unaffected** because the layer is click-through.
+The layer finds rows by ARIA role and reads the Session id from the row's
+`data-row-key` (falling back to React internals). A large change to DSH's sidebar
+structure can make it find nothing; chips then disappear, but **clicking is
+unaffected** because the layer is click-through.
 
 ## Security boundaries
 
@@ -224,8 +238,8 @@ disappear, but **clicking is unaffected** because the layer is click-through.
 ## Limitations
 
 - **The chip depends on DSH's row DOM.** It reads rows by ARIA role and the
-  Session id from React internals. A future DSH release can stop chips from
-  appearing; it cannot break clicking.
+  Session id from the row's `data-row-key`, falling back to React internals. A
+  future DSH release can stop chips from appearing; it cannot break clicking.
 - **Marks are per DSH instance.** They live in one profile's data directory, so
   two independent DSH servers do not share them.
 - **No permission model.** Anyone who can reach the Host's authenticated routes
@@ -244,7 +258,7 @@ is not deleted for you; remove it yourself if you do not want it.
 ## Development
 
 ```sh
-npm test        # 34 tests: bundle shape, store, route, cross-device, geometry, docs
+npm test        # 38 tests: bundle shape, store, route, cross-device, geometry, docs
 ```
 
 The browser half is a hand-authored `__ModuleLoader__` bundle, which is the only
