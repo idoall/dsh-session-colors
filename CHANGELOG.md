@@ -8,6 +8,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-09-23
+
+Verified against DeepSeek Harness `0.1.7-rc.1` (the latest release candidate) as
+well as `0.1.7-alpha.2`. No code change: `0.1.3` already absorbed the `0.1.7`
+changes, and this release confirms the same code on the RC and records it.
+
+### Added
+
+- `dsh.compatibility.dshReleases` now records `0.1.7-rc.1` alongside
+  `0.1.7-alpha.2`; both READMEs state both versions.
+- The design record documents the new `0.1.7-rc.1` behaviour that makes the peer
+  range load-bearing: boot evaluates `@deepseek-ai/dsh*` peers and **disables** a
+  plugin row whose range the running version does not satisfy.
+
+### Notes
+
+- The peer and `dsh.engines.dsh` ranges stay `>=0.1.7-alpha.2 <0.2.0`. Under
+  node-semver's prerelease rule that range already admits `0.1.7-rc.1` (a
+  comparator names the same `major.minor.patch`), so it was deliberately **not**
+  widened for the RC — widening would admit versions nobody tested.
+- `0.1.4` supports DSH `0.1.7-rc.1` and `0.1.7-alpha.2`. Installations on an
+  older DSH, including `0.1.6-alpha.2`, should stay on plugin `0.1.2`.
+
 ## [0.1.3] - 2026-09-23
 
 Verified against DeepSeek Harness `0.1.7-alpha.2`. The first fix below is what
