@@ -92,6 +92,8 @@ dsh plugin --profile <profile> add link:/path/to/dsh-session-colors
 
 当前版本：插件 **`0.1.3`** 已针对 DeepSeek Harness **`0.1.7-alpha.2`** 验证。
 
+**`0.1.3` 只支持 DSH `0.1.7-alpha.2`。** 更旧的 DSH（包括 `0.1.6-alpha.2`）请继续用插件 **`0.1.2`**：`0.1.3` 声明的宿主要求是 `>=0.1.7-alpha.2 <0.2.0`，低于它的版本未经本轮验证。
+
 | 插件版本 | 已验证的 DeepSeek Harness | npm 发布状态 | 该版本是什么 |
 | --- | --- | --- | --- |
 | **`0.1.3`** | `0.1.7-alpha.2` | `latest` | 适配 DSH 0.1.7：会话 id 改从行自身的 `data-row-key` 读取（保留 fiber 回退），色块跟随 0.1.7 引入的 Web Animations 行滑动；宿主依赖按 0.1.7 对 link 插件的解析方式声明，peer 范围也真正覆盖该版本。 |

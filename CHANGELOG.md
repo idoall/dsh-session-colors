@@ -50,6 +50,12 @@ declaration correctness fix and a visible behaviour fix.
   rule instead of a substring check — the check that let the old, excluding range
   pass.
 
+### Notes
+
+- `0.1.3` supports DSH `0.1.7-alpha.2` only and declares
+  `>=0.1.7-alpha.2 <0.2.0` as its Host requirement. Installations on an older DSH,
+  including `0.1.6-alpha.2`, should stay on plugin `0.1.2`.
+
 ## [0.1.2] - 2026-09-22
 
 ### Fixed

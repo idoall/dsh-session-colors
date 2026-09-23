@@ -120,6 +120,10 @@ stored as HSVA, so alpha round-trips exactly.
 Current release: plugin **`0.1.3`**, verified against DeepSeek Harness
 **`0.1.7-alpha.2`**.
 
+**`0.1.3` supports DSH `0.1.7-alpha.2` only.** On an older DSH — including
+`0.1.6-alpha.2` — keep plugin **`0.1.2`**: `0.1.3` declares its Host requirement
+as `>=0.1.7-alpha.2 <0.2.0` and is not verified below it.
+
 | Plugin version | Verified DeepSeek Harness | npm status | What it is |
 | --- | --- | --- | --- |
 | **`0.1.3`** | `0.1.7-alpha.2` | `latest` | Adapts to DSH 0.1.7: the Session id now comes from the row's own `data-row-key` (fiber fallback kept), and chips follow the Web-Animations row gliding `0.1.7` introduced. The Host dependency is declared the way `0.1.7` resolves a linked plugin, and the peer range admits the release. |
