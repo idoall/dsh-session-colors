@@ -111,6 +111,14 @@ DSH 升级到 `0.1.7-alpha.2` 后，插件有三处直接受影响：① 会让�
 
 **为什么 schemastery 用 peer 而不是"依赖 + 自带 node_modules"**：`link:` 装入不会把被 link 包的依赖装进 profile，本仓库也不发布 `node_modules`；而 0.1.7 明确把 link 包的 peer 解析到运行实例。声明成 peer 后，本目录 `link:` 装入即可用，运行实例的 schemastery 版本（3.18.4）就是实际使用的那份；本仓库自己的 `pnpm install` 仍通过 `devDependencies` 拿到它跑测试。
 
+### 验证 DSH 0.1.7-rc.1（2026-09-23，插件 0.1.4）
+
+官方发布 `0.1.7` 系列首个候选版 `0.1.7-rc.1` 后，本仓库没有新的适配工作：`alpha.2 → rc.1` 之间，插件依赖的客户端/宿主契约（client-modules 加载器、`ui-workspace` 的 `Rows.tsx`/`AnimatedRows.tsx`、`ui-layout` 的 overlay、`ui-slots`、`locale`、host `webserver`、`connection`、app-boot 的 profile 解析）**没有源码改动**，只有版本号。`0.1.4` 因此只改声明与文档。
+
+**rc.1 的新行为（本次唯一实质新增，值得记下）**：boot 增加了插件兼容性预检 `evaluatePluginCompatibility`（`packages/boot/app-boot/src/plugin-compatibility.ts`）。它只检查 `peerDependencies` 里名字为 `@deepseek-ai/dsh` 或以 `@deepseek-ai/dsh-` 开头的项，用 `semver.satisfies(runtime, range, { includePrerelease: true })` 判定；**任何一项不满足就把该插件行直接禁用**（`disabled`），而不是只打警告。因此 peer 范围写对已经从"声明问题"变成"能不能加载"的问题——这正是 `0.1.3` 把下界从 `>=0.1.6-0` 改成 `>=0.1.7-alpha.2` 的现实理由。我们的范围对 rc.1 实测 `true`（node-semver 与市场两套判定都通过），所以无需改动。
+
+**实测验收（2026-09-23，运行实例 0.1.7-rc.1，视口 2056×1027，安装形态为已发布的 `0.1.3` COPY 安装）**：boot 图含 `@idoall/dsh-session-colors` 且未被预检禁用；控制台 `build=host-routes+animated-rows marks route status=ready`；3 个真实标记的色块与行精确对齐——`left=14`（行 `left=12` + 2）、`top`＝行顶 + 8、偏差 0，颜色分别为 `rgb(0,122,255)`、`rgb(52,199,89)`、`rgb(255,204,0)`；选择器正常打开（`role=dialog`、`aria-label=选择会话颜色`、7 个主题色、面板 `right=2048 ≤ 2056` 留在屏内）并按 Esc 关闭。验证过程未改动任何已有标记。
+
 ### 为什么选择器注册在 utilities 而不是 actions
 
 标题簇 `titleCluster` 是 `flex: 1 1 0%`，但它**不能收缩到内容以下**。注册在标题旁的 `headerActions` 会让它多出 28px + 4px 间隙；一旦左侧的模式 chip 变宽（例如「标准模式 · 1 个后台任务运行中」），整个簇就会溢出，**压在右侧 `headerUtilities` 上**——移动端实测溢出 102px，色块正好盖住模型下拉框。
