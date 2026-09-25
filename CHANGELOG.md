@@ -8,6 +8,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-09-25
+
+Verified against DeepSeek Harness `0.1.7-rc.2` (the latest release candidate) as
+well as `0.1.7-rc.1` and `0.1.7-alpha.2`. No code change: every contract this
+plugin depends on is unchanged between `rc.1` and `rc.2`, and this release
+confirms the same code on the second RC and records it.
+
+### Added
+
+- `dsh.compatibility.dshReleases` now records `0.1.7-rc.2` alongside
+  `0.1.7-rc.1` and `0.1.7-alpha.2`; both READMEs state all three versions.
+- The design record documents the one substantive addition in `rc.2` — the
+  Session-row seats `sidebar.session.row.leading` and `sidebar.session.row.hover`
+  — and why the chip deliberately stays on its own click-through layer instead of
+  moving into that seat: the leading seat shares the status dot's 16px cell and is
+  mounted only while a row is idle, so a chip placed there would disappear for
+  running, waiting and archived Sessions.
+
+### Notes
+
+- The peer and `dsh.engines.dsh` ranges stay `>=0.1.7-alpha.2 <0.2.0`. Under
+  node-semver's prerelease rule that range already admits `0.1.7-rc.2` (a
+  comparator names the same `major.minor.patch`), so it was deliberately **not**
+  widened for the second RC — widening would admit versions nobody tested.
+- `0.1.5` supports DSH `0.1.7-rc.2`, `0.1.7-rc.1` and `0.1.7-alpha.2`.
+  Installations on an older DSH, including `0.1.6-alpha.2`, should stay on plugin
+  `0.1.2`.
+- The duplicated `@deepseek-ai/schemastery` peer bullet in the English README was
+  removed; the Chinese README already carried it once.
+
 ## [0.1.4] - 2026-09-23
 
 Verified against DeepSeek Harness `0.1.7-rc.1` (the latest release candidate) as
