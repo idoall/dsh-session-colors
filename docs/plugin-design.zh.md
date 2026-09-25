@@ -119,6 +119,16 @@ DSH 升级到 `0.1.7-alpha.2` 后，插件有三处直接受影响：① 会让�
 
 **实测验收（2026-09-23，运行实例 0.1.7-rc.1，视口 2056×1027，安装形态为已发布的 `0.1.3` COPY 安装）**：boot 图含 `@idoall/dsh-session-colors` 且未被预检禁用；控制台 `build=host-routes+animated-rows marks route status=ready`；3 个真实标记的色块与行精确对齐——`left=14`（行 `left=12` + 2）、`top`＝行顶 + 8、偏差 0，颜色分别为 `rgb(0,122,255)`、`rgb(52,199,89)`、`rgb(255,204,0)`；选择器正常打开（`role=dialog`、`aria-label=选择会话颜色`、7 个主题色、面板 `right=2048 ≤ 2056` 留在屏内）并按 Esc 关闭。验证过程未改动任何已有标记。
 
+### 验证 DSH 0.1.7-rc.2（2026-09-25，插件 0.1.5）
+
+`0.1.7` 系列的第二个候选版 `0.1.7-rc.2` 发布后，本仓库同样没有新的适配工作。逐包比对 `rc.1 → rc.2` 的官方产物，本插件依赖的契约全部未变：`dsh-client-modules`（客户端加载器）与 `dsh-client-ui-slots`（slot 注册 API）的 `client.js` **逐字节相同**——这两者正是手写 bundle 的全部立足点；`ui-workspace` 的会话行仍是 `data-row-key="session:<id>"` + `role="treeitem"` + `aria-selected`，行几何（`padding-inline-start: calc(8px + var(--dsh-workspace-indent))`、`height:32px`、16×20 前置格、标题外边距）不变，只多了一个 `border-radius` 令牌；`AnimatedRows` 整段**逐字节相同**（`armed` 由列表内首次 `pointerdown`/`keydown` 触发，`element.animate()` 位移 200ms）；`ui-layout` 的 `shell.overlay` 与 `.overlayLayer`（`z-index:20`、`pointer-events:none`、子元素 `auto`）不变；`ui-conversation` 的 `conversation.session.header.utilities` 不变；`ui-sidebar` 的 `--dsh-sidebar-inline-padding:12px` 与区域几何不变；`locale` 的 `register`/`bind` 不变。`app-boot` 的 `evaluatePluginCompatibility` 也**逐字节相同**——rc.2 只把"被跳过的 bundle"从直接写 stderr 改为记入 `skippedBundles`，并新增 `reportSkippedBundles` 一次性上报。
+
+**实测验收（2026-09-25，运行实例 0.1.7-rc.2，视口 2056×1060，安装形态为已发布的 `0.1.4`，其源码与本版逐字节相同）**：浮层 `dataset` 为 `dshScBuild=host-routes+animated-rows`、`dshScStatus=ready`、`dshScMarks=3`、`dshScWritable=true`，父节点 `BODY`、`z=1`、`pointer-events:none`，并按侧栏列表裁剪；3 个真实标记的色块与各自的行偏差为 0（`left=14`＝行 `left=12`+2，`top`＝行顶+8）；折叠工作区触发真实 WAAPI 滑动时，被标记行的 `top` 从 700 经 24 个不同取值滑到 632，色块逐帧跟随，瞬时偏差最大 5px（亚像素取整）随后归零；选择器打开为 `role=dialog`、`aria-label=选择会话颜色`、7 个主题色、5 个输入框、面板 `right=2048 ≤ 2056`，按 Esc 关闭。验证期间未写入任何标记，宿主文件仍是原来那 3 条。
+
+**rc.2 唯一的实质新增：会话行座位。** `ui-workspace` 在 rc.2 声明了两个 `list` 座位——`sidebar.session.row.leading`（会话行标题前那一格，注释写明"the 16px cell before the title that the row's own state dot otherwise occupies"）与 `sidebar.session.row.hover`（悬停卡片中的一段）。会话行的渲染随之改成：`<span class=slot>` 恒定渲染，内部为 `!row.archived && !row.blank && (showStatus ? <SessionStatusDots/> : renderSlot("sidebar.session.row.leading", { sessionId }))`；行内原来的 `ActiveScheduleIndicator` 与 `flatSessionRowWithoutStatus` 类被移除。
+
+**为什么不把色块搬进该座位（记录为产品选择，0.1.5 不实施）**：① 座位与状态点**共用同一格**，而 DSH 的座位文档写明更高优先级的状态会"用那个点替换座位"，即**只有行处于空闲主状态时才挂载占位**；② 已归档行的该格留空。本插件的两条不变量是"色块在任何状态下都可见"与"色块永不盖住状态点"，搬进去会让色块在运行中、等待中、已归档时消失——恰恰是最需要它的场景。浮层方案不受这些状态影响，并已经过 alpha.2 / rc.1 / rc.2 三轮实测。**因此 0.1.5 保持浮层不变，把"是否改用座位、或空闲行用座位而其余用浮层"留作需要明确决策的问题**，不在小版本里擅自改动。
+
 ### 为什么选择器注册在 utilities 而不是 actions
 
 标题簇 `titleCluster` 是 `flex: 1 1 0%`，但它**不能收缩到内容以下**。注册在标题旁的 `headerActions` 会让它多出 28px + 4px 间隙；一旦左侧的模式 chip 变宽（例如「标准模式 · 1 个后台任务运行中」），整个簇就会溢出，**压在右侧 `headerUtilities` 上**——移动端实测溢出 102px，色块正好盖住模型下拉框。

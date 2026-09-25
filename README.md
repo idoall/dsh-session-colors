@@ -23,7 +23,7 @@
   <a href="#development">Development</a>
 </p>
 
-> **✅ Supports DSH `0.1.7-rc.1` — the latest `0.1.7` release candidate.** Verified on the running release candidate as well as on `0.1.7-alpha.2`; see [Compatibility](#compatibility).
+> **✅ Supports DSH `0.1.7-rc.2` — the latest `0.1.7` release candidate.** Verified on the running release candidate as well as on `0.1.7-rc.1` and `0.1.7-alpha.2`; see [Compatibility](#compatibility).
 
 > DSH Session Colors is a DeepSeek Harness community plugin. It does not modify
 > DSH core and does not rewrite any Session or Workspace data: a mark is only
@@ -71,8 +71,9 @@ Requirements:
 
 - DeepSeek Harness with a Web profile
 - Node.js 20 or newer
-- **Verified DSH version: `0.1.7-rc.1`** (the latest release candidate) and
-  `0.1.7-alpha.2` — plugin `0.1.4` (see [Compatibility](#compatibility))
+- **Verified DSH version: `0.1.7-rc.2`** (the latest release candidate),
+  `0.1.7-rc.1` and `0.1.7-alpha.2` — plugin `0.1.5`
+  (see [Compatibility](#compatibility))
 
 ```sh
 dsh plugin --profile <profile> add @idoall/dsh-session-colors@latest
@@ -120,24 +121,28 @@ stored as HSVA, so alpha round-trips exactly.
 
 ## Compatibility
 
-Current release: plugin **`0.1.4`** is verified against DeepSeek Harness
-**`0.1.7-rc.1`** — the latest `0.1.7` release candidate — and against
-**`0.1.7-alpha.2`**.
+Current release: plugin **`0.1.5`** is verified against DeepSeek Harness
+**`0.1.7-rc.2`** — the latest `0.1.7` release candidate — as well as against
+**`0.1.7-rc.1`** and **`0.1.7-alpha.2`**.
 
 | Plugin version | Verified DeepSeek Harness | npm status | What it is |
 | --- | --- | --- | --- |
-| **`0.1.4`** | **`0.1.7-rc.1`** (latest RC), `0.1.7-alpha.2` | `latest` | Confirms the `0.1.7` adaptation runs unchanged on the release candidate and declares it. No code change over `0.1.3`; upgrading needs no migration. |
+| **`0.1.5`** | **`0.1.7-rc.2`** (latest RC), `0.1.7-rc.1`, `0.1.7-alpha.2` | `latest` | Confirms the same code runs unchanged on the second release candidate and declares it. No code change over `0.1.4`; upgrading needs no migration. |
+| `0.1.4` | `0.1.7-rc.1` (RC), `0.1.7-alpha.2` | published | Confirms the `0.1.7` adaptation runs unchanged on the first release candidate and declares it. No code change over `0.1.3`. |
 | `0.1.3` | `0.1.7-alpha.2` | published | Adapts to DSH 0.1.7: the Session id comes from the row's own `data-row-key` (fiber fallback kept), chips follow the Web-Animations row gliding `0.1.7` introduced, and the Host dependency is declared the way `0.1.7` resolves a linked plugin. |
 | `0.1.2` | `0.1.6-alpha.2` | published | Fixes chips staying at their old coordinates for ~20s when a workspace is collapsed or expanded: a second `MutationObserver.observe()` on the same target had silently replaced the `childList` watch. |
 | `0.1.1` | `0.1.6-alpha.2` | published | Documentation only: the packaged README no longer says "not published", and the market screenshots are declared. |
 | `0.1.0` | `0.1.6-alpha.2` | published | First release: Session colour marks, Host-side storage, visible inside a phone's sidebar drawer |
 
-**`0.1.4` supports DSH `0.1.7-rc.1`, the latest release candidate.** The `0.1.7`
-line changed the sidebar row markup and the linked-plugin dependency resolution,
-and **`0.1.3` already absorbed both** — `0.1.4` confirms the same code runs
-unchanged on the RC and records it. **Upgrading from `0.1.3` needs no migration.**
-On an older DSH — including `0.1.6-alpha.2` — keep plugin **`0.1.2`**. Newer DSH
-releases are not auto-declared compatible.
+**`0.1.5` supports DSH `0.1.7-rc.2`, the latest release candidate.** Between
+`rc.1` and `rc.2` every contract this plugin depends on is unchanged — the
+client-modules loader and the slot registration API are byte-identical, the
+sidebar row keeps its `data-row-key`/`role`/`aria-selected` markup and its exact
+geometry, and `shell.overlay` still renders the same layer — so **`0.1.5`
+confirms the same code runs unchanged on the second RC and records it.**
+**Upgrading from `0.1.4` needs no migration.** On an older DSH — including
+`0.1.6-alpha.2` — keep plugin **`0.1.2`**. Newer DSH releases are not
+auto-declared compatible.
 
 - **Verified DeepSeek Harness** is the exact DSH version this plugin was actually
   run against. That list has one home — `dsh.compatibility.dshReleases` in
@@ -147,18 +152,21 @@ releases are not auto-declared compatible.
 - `peerDependencies` declares `>=0.1.7-alpha.2 <0.2.0` for `dsh-client-ui-layout`
   and `dsh-client-ui-conversation`, and `dsh.engines.dsh` declares the same range
   as the Host requirement: that is the range allowed to **load**, which is not the
-  same as verified. The range admits **both** `0.1.7-alpha.2` and `0.1.7-rc.1`
-  (a prerelease is admitted when some comparator names the same
-  `major.minor.patch`), so it was deliberately **not** widened for the RC — doing
-  so would admit versions nobody tested. The lower bound names the alpha on
-  purpose: a range like `>=0.1.6-0 <0.2.0` admits neither.
-- DSH 0.1.7-rc.1 evaluates those peers at boot and **disables** a plugin row whose
+  same as verified. The range admits **all three** of `0.1.7-alpha.2`,
+  `0.1.7-rc.1` and `0.1.7-rc.2` (a prerelease is admitted when some comparator
+  names the same `major.minor.patch`), so it was deliberately **not** widened for
+  the RCs — doing so would admit versions nobody tested. The lower bound names the
+  alpha on purpose: a range like `>=0.1.6-0 <0.2.0` admits none of them.
+- DSH 0.1.7 evaluates those peers at boot and **disables** a plugin row whose
   range is not satisfied, so a correct range is now load-bearing rather than
-  cosmetic.
-- `@deepseek-ai/schemastery` is a **peer**, not a plain dependency: DSH 0.1.7
-  resolves only a linked plugin's peer dependencies from the running
-  installation, so a `link:` install of this directory would otherwise fail to
-  import the Host half.
+  cosmetic. The evaluation code is identical in `rc.1` and `rc.2`.
+- DSH 0.1.7-rc.2 added a real Session-row seat,
+  `sidebar.session.row.leading` — a 16px cell before the title. The chip
+  deliberately **stays on its own click-through layer**: that seat shares its cell
+  with the status dot and is mounted **only while the row is idle** (a running,
+  waiting or archived row renders no occupant), so a chip placed there would
+  vanish exactly when it is most useful. See
+  [Limitations](#limitations) and the design record.
 - `@deepseek-ai/schemastery` is a **peer**, not a plain dependency: DSH 0.1.7
   resolves only a linked plugin's peer dependencies from the running
   installation, so a `link:` install of this directory would otherwise fail to
@@ -256,6 +264,12 @@ unaffected** because the layer is click-through.
 - **The chip depends on DSH's row DOM.** It reads rows by ARIA role and the
   Session id from the row's `data-row-key`, falling back to React internals. A
   future DSH release can stop chips from appearing; it cannot break clicking.
+- **The chip is not a row occupant.** DSH 0.1.7-rc.2 declares a real
+  `sidebar.session.row.leading` seat in the row's status-dot cell, and this plugin
+  deliberately does **not** use it: that seat is mounted only while a row is idle,
+  so a chip placed there would disappear for running, waiting and archived
+  Sessions. The chip stays on its own click-through layer, which keeps it visible
+  in every state and never covers the dot.
 - **Marks are per DSH instance.** They live in one profile's data directory, so
   two independent DSH servers do not share them.
 - **No permission model.** Anyone who can reach the Host's authenticated routes
