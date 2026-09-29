@@ -23,7 +23,7 @@
   <a href="#development">Development</a>
 </p>
 
-> **✅ Supports DSH `0.1.7-rc.2` — the latest `0.1.7` release candidate.** Verified on the running release candidate as well as on `0.1.7-rc.1` and `0.1.7-alpha.2`; see [Compatibility](#compatibility).
+> **✅ Supports DSH `0.2.0-rc.1` — the latest `0.2.0` release candidate.** Verified on the running release candidate as well as on `0.1.7-rc.2`, `0.1.7-rc.1` and `0.1.7-alpha.2`; see [Compatibility](#compatibility).
 
 > DSH Session Colors is a DeepSeek Harness community plugin. It does not modify
 > DSH core and does not rewrite any Session or Workspace data: a mark is only
@@ -71,8 +71,8 @@ Requirements:
 
 - DeepSeek Harness with a Web profile
 - Node.js 20 or newer
-- **Verified DSH version: `0.1.7-rc.2`** (the latest release candidate),
-  `0.1.7-rc.1` and `0.1.7-alpha.2` — plugin `0.1.5`
+- **Verified DSH version: `0.2.0-rc.1`** (the latest release candidate),
+  `0.1.7-rc.2`, `0.1.7-rc.1` and `0.1.7-alpha.2` — plugin `0.1.6`
   (see [Compatibility](#compatibility))
 
 ```sh
@@ -121,26 +121,35 @@ stored as HSVA, so alpha round-trips exactly.
 
 ## Compatibility
 
-Current release: plugin **`0.1.5`** is verified against DeepSeek Harness
-**`0.1.7-rc.2`** — the latest `0.1.7` release candidate — as well as against
-**`0.1.7-rc.1`** and **`0.1.7-alpha.2`**.
+Current release: plugin **`0.1.6`** is verified against DeepSeek Harness
+**`0.2.0-rc.1`** — the latest `0.2.0` release candidate — as well as against
+**`0.1.7-rc.2`**, **`0.1.7-rc.1`** and **`0.1.7-alpha.2`**.
 
 | Plugin version | Verified DeepSeek Harness | npm status | What it is |
 | --- | --- | --- | --- |
-| **`0.1.5`** | **`0.1.7-rc.2`** (latest RC), `0.1.7-rc.1`, `0.1.7-alpha.2` | `latest` | Confirms the same code runs unchanged on the second release candidate and declares it. No code change over `0.1.4`; upgrading needs no migration. |
+| **`0.1.6`** | **`0.2.0-rc.1`** (latest RC), `0.1.7-rc.2`, `0.1.7-rc.1`, `0.1.7-alpha.2` | `latest` | Verifies the same code on DSH `0.2.0-rc.1` and rewrites the declared load range so the plugin survives the `0.2.0` final release. No code change over `0.1.5`; upgrading needs no migration. |
+| `0.1.5` | `0.1.7-rc.2` (latest 0.1.7 RC), `0.1.7-rc.1`, `0.1.7-alpha.2` | published | Confirms the same code runs unchanged on the second release candidate and declares it. No code change over `0.1.4`; upgrading needs no migration. |
 | `0.1.4` | `0.1.7-rc.1` (RC), `0.1.7-alpha.2` | published | Confirms the `0.1.7` adaptation runs unchanged on the first release candidate and declares it. No code change over `0.1.3`. |
 | `0.1.3` | `0.1.7-alpha.2` | published | Adapts to DSH 0.1.7: the Session id comes from the row's own `data-row-key` (fiber fallback kept), chips follow the Web-Animations row gliding `0.1.7` introduced, and the Host dependency is declared the way `0.1.7` resolves a linked plugin. |
 | `0.1.2` | `0.1.6-alpha.2` | published | Fixes chips staying at their old coordinates for ~20s when a workspace is collapsed or expanded: a second `MutationObserver.observe()` on the same target had silently replaced the `childList` watch. |
 | `0.1.1` | `0.1.6-alpha.2` | published | Documentation only: the packaged README no longer says "not published", and the market screenshots are declared. |
 | `0.1.0` | `0.1.6-alpha.2` | published | First release: Session colour marks, Host-side storage, visible inside a phone's sidebar drawer |
 
-**`0.1.5` supports DSH `0.1.7-rc.2`, the latest release candidate.** Between
-`rc.1` and `rc.2` every contract this plugin depends on is unchanged — the
-client-modules loader and the slot registration API are byte-identical, the
-sidebar row keeps its `data-row-key`/`role`/`aria-selected` markup and its exact
-geometry, and `shell.overlay` still renders the same layer — so **`0.1.5`
-confirms the same code runs unchanged on the second RC and records it.**
-**Upgrading from `0.1.4` needs no migration.** On an older DSH — including
+**`0.1.6` supports DSH `0.2.0-rc.1`, the latest release candidate.** Between
+`0.1.7-rc.2` and `0.2.0-rc.1` every contract this plugin depends on is
+unchanged — the client-modules loader and the slot registration API differ only
+in their package version numbers, the compatibility precheck that evaluates
+`peerDependencies` is byte-identical, the sidebar row keeps its
+`data-row-key`/`role`/`aria-selected` markup, `conversation.session.header.utilities`
+is still a session-scoped list, and `shell.overlay` still renders the same layer
+— so **`0.1.6` confirms the same code runs unchanged on the new RC and records
+it.** The range changes because the old `<0.2.0` upper bound admitted
+`0.2.0-rc.1` only through prerelease ordering: on the `0.2.0` **final** release
+the plugin row would have been disabled at boot. Under node-semver's prerelease
+rule each tuple must be named, so the range now has three alternatives — the
+verified `0.1.7` line, exactly `0.2.0-rc.1`, and the `0.2.0` stable line up to
+`<0.3.0`.
+**Upgrading from `0.1.5` needs no migration.** On an older DSH — including
 `0.1.6-alpha.2` — keep plugin **`0.1.2`**. Newer DSH releases are not
 auto-declared compatible.
 
@@ -149,17 +158,19 @@ auto-declared compatible.
   [`package.json`](package.json) — and a test keeps both READMEs' compatibility
   sections word-for-word with it and inside the range `peerDependencies`
   declares. A DSH version that is not listed is **never claimed as compatible**.
-- `peerDependencies` declares `>=0.1.7-alpha.2 <0.2.0` for `dsh-client-ui-layout`
-  and `dsh-client-ui-conversation`, and `dsh.engines.dsh` declares the same range
-  as the Host requirement: that is the range allowed to **load**, which is not the
-  same as verified. The range admits **all three** of `0.1.7-alpha.2`,
-  `0.1.7-rc.1` and `0.1.7-rc.2` (a prerelease is admitted when some comparator
-  names the same `major.minor.patch`), so it was deliberately **not** widened for
-  the RCs — doing so would admit versions nobody tested. The lower bound names the
-  alpha on purpose: a range like `>=0.1.6-0 <0.2.0` admits none of them.
-- DSH 0.1.7 evaluates those peers at boot and **disables** a plugin row whose
-  range is not satisfied, so a correct range is now load-bearing rather than
-  cosmetic. The evaluation code is identical in `rc.1` and `rc.2`.
+- `peerDependencies` declare `>=0.1.7-alpha.2 <0.2.0-0 || 0.2.0-rc.1 || >=0.2.0 <0.3.0`
+  for `dsh-client-ui-layout` and `dsh-client-ui-conversation`, and
+  `dsh.engines.dsh` declares the same range as the Host requirement: that is the
+  range allowed to **load**, which is not the same as verified. The three
+  alternatives are deliberate: a prerelease is admitted only when a comparator
+  names its exact `major.minor.patch`, so the `0.1.7` line needs its own
+  comparator, `0.2.0-rc.1` is pinned exactly (an untested `0.2.0-rc.2` stays
+  out), and the stable `0.2.0` line is admitted so the plugin survives the
+  final release. The lower bound names the alpha on purpose: a range like
+  `>=0.1.6-0 <0.2.0` admits none of the verified versions.
+- DSH evaluates those peers at boot and **disables** a plugin row whose range is
+  not satisfied, so a correct range is load-bearing rather than cosmetic. The
+  evaluation code is identical in `0.1.7-rc.1`, `0.1.7-rc.2` and `0.2.0-rc.1`.
 - DSH 0.1.7-rc.2 added a real Session-row seat,
   `sidebar.session.row.leading` — a 16px cell before the title. The chip
   deliberately **stays on its own click-through layer**: that seat shares its cell
