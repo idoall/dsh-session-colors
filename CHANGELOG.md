@@ -8,6 +8,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-09-28
+
+Verified against DeepSeek Harness `0.2.0-rc.1` (the latest release candidate) as
+well as `0.1.7-rc.2`, `0.1.7-rc.1` and `0.1.7-alpha.2`. No code change: every
+contract this plugin depends on is unchanged between `0.1.7-rc.2` and
+`0.2.0-rc.1`, and this release confirms the same code on the new RC and records
+it.
+
+### Changed
+
+- The `peerDependencies` and `dsh.engines.dsh` ranges change from
+  `>=0.1.7-alpha.2 <0.2.0` to
+  `>=0.1.7-alpha.2 <0.2.0-0 || 0.2.0-rc.1 || >=0.2.0 <0.3.0`. The old upper
+  bound admitted `0.2.0-rc.1` only through node-semver's prerelease ordering; on
+  the `0.2.0` **final** release the compatibility precheck would have disabled
+  the plugin row at boot. Under node-semver's prerelease rule a prerelease is
+  admitted only when a comparator names its exact `major.minor.patch`, so the
+  new range has three alternatives: the verified `0.1.7` line, exactly
+  `0.2.0-rc.1` (an untested `0.2.0-rc.2` stays out), and the stable `0.2.0`
+  line up to `<0.3.0`.
+- `dsh.compatibility.dshReleases` now records `0.2.0-rc.1` alongside
+  `0.1.7-rc.2`, `0.1.7-rc.1` and `0.1.7-alpha.2`; both READMEs state all four
+  versions.
+
+### Notes
+
+- Contracts verified unchanged between `0.1.7-rc.2` and `0.2.0-rc.1`: the
+  client-modules loader and the slot registration API differ only in package
+  version numbers; the compatibility precheck
+  (`evaluatePluginCompatibility` and its callers) is byte-identical; the
+  sidebar row keeps `data-row-key="session:<id>"`, `role="treeitem"` and
+  `aria-selected`; `conversation.session.header.utilities` is still a
+  session-scoped list; `shell.overlay` is still declared by `ui-layout`; the
+  `slots`/`locale`/`layout` service faces and the `react@^18.2.0` baseline are
+  unchanged.
+- Verified on the running `0.2.0-rc.1` web-profile instance with the published
+  `0.1.5`: the client half loads and prints its diagnostic line, the Host half's
+  `GET /plugins/dsh-session-colors/marks` answers `200`, the header control
+  renders, and DSH does not disable the plugin row.
+- `0.1.6` supports DSH `0.2.0-rc.1`, `0.1.7-rc.2`, `0.1.7-rc.1` and
+  `0.1.7-alpha.2`. Installations on an older DSH, including `0.1.6-alpha.2`,
+  should stay on plugin `0.1.2`.
+
 ## [0.1.5] - 2026-09-25
 
 Verified against DeepSeek Harness `0.1.7-rc.2` (the latest release candidate) as
