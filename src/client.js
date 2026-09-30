@@ -4,7 +4,7 @@
  * Two surfaces, both reached through public slots, so no shipped file is
  * touched and nothing is DOM-patched:
  *
- * - `conversation.session.header.actions` carries the picker button and its
+ * - `conversation.session.header.utilities` carries the picker button and its
  *   system-style panel (saturation/value field, hue, alpha, hex, RGBA, theme
  *   swatches, saved colours).
  * - `shell.overlay` carries the chip layer: a frame-wide, fixed, click-through
