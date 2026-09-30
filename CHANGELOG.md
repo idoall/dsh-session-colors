@@ -8,6 +8,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-09-30
+
+Verified against DeepSeek Harness `0.2.0-rc.2` (the latest release candidate) as
+well as `0.2.0-rc.1`, `0.1.7-rc.2`, `0.1.7-rc.1` and `0.1.7-alpha.2`. No logic
+change: every contract this plugin depends on is unchanged between `0.2.0-rc.1`
+and `0.2.0-rc.2`, and this release confirms the same code on the new RC and
+records it in the declared range. `0.1.6` is rejected by the `0.2.0-rc.2` boot
+precheck because its range stops at `0.2.0-rc.1`; `0.1.7` is what lifts that.
+
+### Changed
+
+- `src/client.js`'s header comment now names the slot the file actually
+  registers on, `conversation.session.header.utilities`; it had kept the older
+  `conversation.session.header.actions` spelling. Comment only: no executed
+  statement changes.
+- The `peerDependencies` and `dsh.engines.dsh` ranges gain a fourth
+  alternative: `>=0.1.7-alpha.2 <0.2.0-0 || 0.2.0-rc.1 || 0.2.0-rc.2 || >=0.2.0 <0.3.0`.
+  Under node-semver's prerelease rule a prerelease is admitted only when a
+  comparator names its exact `major.minor.patch`, so `0.2.0-rc.2` has to be
+  written out; a later `0.2.0-rc.3` remains unadmitted. The verified `0.1.7`
+  line and the stable `0.2.0` line up to `<0.3.0` are unchanged.
+- `dsh.compatibility.dshReleases` now records `0.2.0-rc.2` alongside
+  `0.2.0-rc.1`, `0.1.7-rc.2`, `0.1.7-rc.1` and `0.1.7-alpha.2`; both READMEs
+  state all five versions.
+
+### Notes
+
+- Contracts verified unchanged between `0.2.0-rc.1` and `0.2.0-rc.2`: the
+  compatibility precheck (`evaluatePluginCompatibility` and its callers) is
+  byte-identical; the client-modules loader and the slot registration API differ
+  only in package version numbers; `ui-workspace`'s row rendering
+  (`Rows.tsx`, `AnimatedRows.tsx`, `WorkspaceBrowser.tsx`) is untouched and the
+  row still carries `data-row-key="session:<id>"`, `role="treeitem"` and
+  `aria-selected`; the `conversation.session.header.utilities` and
+  `shell.overlay` catalog entries are identical; `ui-layout` and
+  `ui-conversation` change only in `ConversationMainPanel`'s width-controls
+  refactor and in locale strings.
+- Measured end-to-end on a disposable `0.2.0-rc.2` web profile built for this
+  release (the running profile is not touched): the plugin bundle mounts with no
+  precheck warning, and in the browser the client half loads and prints
+  `[dsh-session-colors] build=host-routes+animated-rows`, the header control
+  renders inside `conversation.session.header.utilities`, the picker panel
+  opens, a chosen colour round-trips through
+  `GET`/`POST /plugins/dsh-session-colors/marks` with `persistence: "file"`, the
+  chip lands vertically centred in the 32px Session row inside its 8px left
+  padding, and clearing the mark removes both the mark and the chip.
+- Control experiment: the same tarball at `0.1.6` is refused by
+  `dsh plugin add` on `0.2.0-rc.2` with the reported `incompatible` error, while
+  `0.1.7` installs and mounts.
+- `0.1.7` supports DSH `0.2.0-rc.2`, `0.2.0-rc.1`, `0.1.7-rc.2`, `0.1.7-rc.1`
+  and `0.1.7-alpha.2`. Installations on an older DSH, including
+  `0.1.6-alpha.2`, should stay on plugin `0.1.2`.
+
 ## [0.1.6] - 2026-09-28
 
 Verified against DeepSeek Harness `0.2.0-rc.1` (the latest release candidate) as
