@@ -8,6 +8,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.8] - 2026-10-15
+
+Verified against DeepSeek Harness `0.2.1-alpha.3` (the latest alpha) as well as
+`0.2.0-rc.2`, `0.2.0-rc.1`, `0.1.7-rc.2`, `0.1.7-rc.1` and `0.1.7-alpha.2`. No
+logic change: every contract this plugin depends on is unchanged, DSH's boot
+precheck already accepted the previous range, and this release confirms the same
+code on the new alpha and names its tuple in the declared load range.
+
+### Changed
+
+- The `peerDependencies` and `dsh.engines.dsh` ranges gain a fifth
+  alternative: `>=0.1.7-alpha.2 <0.2.0-0 || 0.2.0-rc.1 || 0.2.0-rc.2 || >=0.2.0 <0.3.0 || >=0.2.1-alpha.3 <0.3.0`.
+  Under node-semver's prerelease rule a prerelease is admitted only when a
+  comparator names its exact `major.minor.patch`, so the verified `0.2.1` tuple
+  has to be written out; a later `0.2.2-alpha.1` remains unadmitted. DSH's own
+  boot check reads the range permissively (`includePrerelease`), which is why
+  `0.2.1-alpha.3` already loaded on the previous range, and the fourth
+  alternative is why stable `0.2.x` releases still load.
+- `dsh.compatibility.dshReleases` now records `0.2.1-alpha.3` alongside
+  `0.2.0-rc.2`, `0.2.0-rc.1`, `0.1.7-rc.2`, `0.1.7-rc.1` and `0.1.7-alpha.2`;
+  both READMEs state all six versions.
+
+### Notes
+
+- Contracts verified present on `0.2.1-alpha.3`: the compatibility precheck
+  accepts the manifest unchanged (`evaluatePluginCompatibility` returns no
+  conflict); the client-modules `__ModuleLoader__.load({ id, factory })`
+  contract, the `slots.inject`/`slots.register` pair, the
+  `conversation.session.header.utilities` (session-scoped, `sessionId` standard
+  prop) and `shell.overlay` slots, the `locale.register`/`bind` service and the
+  `layout` service; and the sidebar row still carries
+  `data-row-key="session:<id>"` with `role="treeitem"` + `aria-selected`.
+- Measured end-to-end against the running `0.2.1-alpha.3` web profile: the
+  plugin's own route answers `GET /plugins/dsh-session-colors/marks` with `200`
+  (an unregistered path under the same prefix answers `404`); the composed boot
+  graph serves `@idoall/dsh-session-colors/client.js`, and the served bundle
+  contains `src/client.js` verbatim; in the browser the client half prints
+  `[dsh-session-colors] build=host-routes+animated-rows` with no page error, the
+  header control renders on a marked Session and opens the picker, and each
+  marked visible row gets a 4x16 chip vertically centred in its 32px row
+  (`chip.left=14` against `row.left=12`), clear of the status dot.
+- The repository's own tests pass on this tree (38/38), and the `0.2.1-alpha.3`
+  boot log disables only `browser-use` and `browser-use-playwright-mcp`, whose
+  peers still pin `0.2.1-alpha.1`; this plugin is not among them.
+
 ## [0.1.7] - 2026-09-30
 
 Verified against DeepSeek Harness `0.2.0-rc.2` (the latest release candidate) as
