@@ -8,6 +8,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.10] - 2026-10-16
+
+Verified against DeepSeek Harness `0.2.1-alpha.5` (the latest alpha) as well as
+`0.2.1-alpha.4`, `0.2.1-alpha.3`, `0.2.0-rc.2`, `0.2.0-rc.1`, `0.1.7-rc.2`,
+`0.1.7-rc.1` and `0.1.7-alpha.2`. No logic change and no declaration change beyond
+the new entry: every package this plugin consumes is byte-identical between
+`0.2.1-alpha.4` and `0.2.1-alpha.5`, and the load range already admitted
+`0.2.1-alpha.5`.
+
+### Changed
+
+- `dsh.compatibility.dshReleases` now records `0.2.1-alpha.5` alongside
+  `0.2.1-alpha.4`, `0.2.1-alpha.3`, `0.2.0-rc.2`, `0.2.0-rc.1`, `0.1.7-rc.2`,
+  `0.1.7-rc.1` and `0.1.7-alpha.2`; both READMEs state all eight versions.
+- No other declaration moved. The load range is unchanged, and it stays in the
+  top-level `engines.dsh` that `0.1.9` moved it to.
+
+### Notes
+
+- Measured difference between the two alphas for everything this plugin touches:
+  the client bundles of `dsh-client-ui-workspace`, `dsh-client-ui-conversation`,
+  `dsh-client-ui-layout` and `dsh-client-modules`, the compatibility precheck in
+  `dsh-app-boot/lib/index.js`, and the Host-side `dsh-host-webserver` and
+  `dsh-client-connection` code are all **byte-identical**. A diff of zero lines
+  each, so there is nothing to adapt to and no control experiment to run.
+- `evaluatePluginCompatibility` on the shipped manifest with runtime
+  `0.2.1-alpha.5` reports no unmet requirement, through the `engines.dsh`-first
+  branch that `0.2.1-alpha.4` introduced.
+- Measured end-to-end on the running `0.2.1-alpha.5` web profile: the boot log
+  disables no row of this plugin; the plugin's own route answers
+  `GET /plugins/dsh-session-colors/marks` with `401` through the connection fence
+  while an unregistered path under the same prefix answers `404`; the composed
+  boot graph serves this package's `client.js` and the served bundle contains
+  `src/client.js` verbatim; the client half prints
+  `build=host-routes+animated-rows` with no page error; the header control renders
+  on a marked Session and opens the picker; and each marked row at least partly
+  inside the sidebar's scroll viewport gets its 4x16 chip, vertically centred in
+  the 32px row at `left=14` against `row.left=12`, clear of the status dot.
+- `npm test` passes on this tree (38/38) and `npm pack --dry-run` still ships
+  exactly the 11 whitelisted files.
+
 ## [0.1.9] - 2026-10-16
 
 Verified against DeepSeek Harness `0.2.1-alpha.4` (the latest alpha) as well as
