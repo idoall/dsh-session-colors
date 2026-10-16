@@ -185,6 +185,17 @@ test('both READMEs state the DSH versions this build is verified against', () =>
         `${peer} range ${pkg.peerDependencies[peer]} must admit verified ${release}`,
       );
     }
+    // `engines.dsh` is checked too because from DSH 0.2.1-alpha.4 it is the range
+    // the boot precheck and the marketplace read, and a plugin that declares it
+    // is gated on it ALONE (peerDependencies are then ignored). A verified claim
+    // that the peer ranges admit but `engines.dsh` rejects would be a row DSH
+    // disables, so both must admit every declared release.
+    assert.equal(typeof pkg.engines.dsh, 'string', 'the DSH requirement lives at top-level engines.dsh');
+    assert.ok(
+      satisfies(release, pkg.engines.dsh),
+      `engines.dsh ${pkg.engines.dsh} must admit verified ${release}`,
+    );
+    assert.equal(pkg.dsh.engines, undefined, 'the namespaced dsh.engines is read by nothing');
   }
   for (const [name, body] of [['README.md', read('README.md')], ['README.zh.md', read('README.zh.md')]]) {
     assert.ok(body.includes(`\`${pkg.version}\``), `${name} must name the plugin version ${pkg.version}`);

@@ -1,6 +1,6 @@
 {
   "name": "@idoall/dsh-session-colors",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "type": "module",
   "description": "DSH web plugin: give any Session a colour mark, shown as a chip in the sidebar and picked from the conversation header. Marks are stored on the Host, so a colour chosen on one device is visible on every other one — including over LAN and tunnels.",
   "main": "./src/index.js",
@@ -20,11 +20,9 @@
   ],
   "dsh": {
     "manifestVersion": 1,
-    "engines": {
-      "dsh": ">=0.1.7-alpha.2 <0.2.0-0 || 0.2.0-rc.1 || 0.2.0-rc.2 || >=0.2.0 <0.3.0 || >=0.2.1-alpha.3 <0.3.0"
-    },
     "compatibility": {
       "dshReleases": {
+        "0.2.1-alpha.4": "compatible",
         "0.2.1-alpha.3": "compatible",
         "0.2.0-rc.2": "compatible",
         "0.2.0-rc.1": "compatible",
@@ -71,7 +69,8 @@
   },
   "license": "MIT",
   "engines": {
-    "node": ">=20"
+    "node": ">=20",
+    "dsh": ">=0.1.7-alpha.2 <0.2.0-0 || 0.2.0-rc.1 || 0.2.0-rc.2 || >=0.2.0 <0.3.0 || >=0.2.1-alpha.3 <0.3.0"
   },
   "repository": {
     "type": "git",

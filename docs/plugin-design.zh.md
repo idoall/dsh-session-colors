@@ -107,6 +107,8 @@ DSH 升级到 `0.1.7-alpha.2` 后，插件有三处直接受影响：① 会让�
 
 构建标记随之改为 `host-routes+animated-rows`，设备上的 DOM dump 能区分"缓存客户端"。
 
+**声明位置订正（2026-10-16 起，DSH `0.2.1-alpha.4`）**：`0.2.1-alpha.4` 的兼容性预检新增了 `engines.dsh` 优先分支——顶层 `engines.dsh` 一旦存在就**单独决定**门禁（此时忽略 `peerDependencies`，见 `dsh-app-boot` 的 `unmetRequirements()`）；插件市场（`dsh-plugin-market` 的 `compatibilityOf()`）构造兼容性视图时读的也是同一字段。而 `dsh.engines.dsh` 在整个 DSH 源码里**没有任何读取方**，所以此前真正把关的一直是 peer 范围，上表 ② 里"新增 `dsh.engines.dsh`"只是一句说明。因此自插件 `0.1.9` 起，那串加载范围写在**顶层 `engines.dsh`**（字符串不变），并删除 `dsh.engines.dsh`；`0.2.1-alpha.3` 及更早的 DSH 不读顶层字段，仍按 peer 判定，行为不变。判定实现本身在 `0.1.7-rc.1`–`0.2.1-alpha.3` 之间逐字节相同，`0.2.1-alpha.4` 是引入该分支的一版。
+
 **实测验收（2026-09-23，运行实例 0.1.7-alpha.2，视口 2056×1027）**：`dsh plugin --profile web add link:…` 装入后，运行中的实例（`patchReload: live`）**热挂载**成功——boot 图里出现 `@idoall/dsh-session-colors`，控制台打印 `build=host-routes+animated-rows marks route status=ready`，说明宿主半边的 peer 解析路径成立（无需先重启）。选择器从会话头部打开正常；点主题色后该会话行出现色块，实测 `left=14px`（行 `left=12` + 2）、`top=250`（行 `top=242` + (32−16)/2）、颜色 `rgb(52,199,89)`、浮层父节点 `BODY`、`z=1`、`pointer-events:none`。跟随验证用真实折叠触发 `AnimatedRows` 的 WAAPI 滑动：被标记行逐帧从 `top=564` 移到 `530`（22 个不同取值），色块同步从 `572` 跟到 `538`，逐帧差值恒为 8–10px（亚像素取整），即色块始终贴在行上。验证用的临时标记已清除，宿主文件回到 `{"version":1,"marks":{}}`。
 
 **为什么 schemastery 用 peer 而不是"依赖 + 自带 node_modules"**：`link:` 装入不会把被 link 包的依赖装进 profile，本仓库也不发布 `node_modules`；而 0.1.7 明确把 link 包的 peer 解析到运行实例。声明成 peer 后，本目录 `link:` 装入即可用，运行实例的 schemastery 版本（3.18.4）就是实际使用的那份；本仓库自己的 `pnpm install` 仍通过 `devDependencies` 拿到它跑测试。

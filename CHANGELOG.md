@@ -8,6 +8,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-10-16
+
+Verified against DeepSeek Harness `0.2.1-alpha.4` (the latest alpha) as well as
+`0.2.1-alpha.3`, `0.2.0-rc.2`, `0.2.0-rc.1`, `0.1.7-rc.2`, `0.1.7-rc.1` and
+`0.1.7-alpha.2`. No logic change: every contract this plugin depends on is
+unchanged, the boot gate accepts the same range under both semver rules, and this
+release records the new alpha and moves the declared DSH requirement to the field
+`0.2.1-alpha.4` actually enforces.
+
+### Changed
+
+- The declared DSH range moves from the namespaced `dsh.engines.dsh` to the
+  **top-level `engines.dsh`**, with the value unchanged. `0.2.1-alpha.4` added an
+  `engines.dsh`-first branch to the compatibility precheck: when that field is
+  present it decides alone and `peerDependencies` are ignored, and the
+  marketplace (`dsh-plugin-market`) builds its compatibility view from the same
+  field. Nothing in DSH reads `dsh.engines.dsh`, so the requirement this plugin
+  documented was previously inert metadata; the peer ranges carried the gate.
+  On DSH releases up to `0.2.1-alpha.3` the top-level field is not read at all, so
+  behaviour there is unchanged, and the test that guards the declaration now
+  asserts the new location.
+- `dsh.compatibility.dshReleases` now records `0.2.1-alpha.4` alongside
+  `0.2.1-alpha.3`, `0.2.0-rc.2`, `0.2.0-rc.1`, `0.1.7-rc.2`, `0.1.7-rc.1` and
+  `0.1.7-alpha.2`; both READMEs state all seven versions.
+
+### Notes
+
+- The load range itself is unchanged: `>=0.2.1-alpha.3 <0.3.0` already admits
+  `0.2.1-alpha.4` under DSH's `includePrerelease` precheck and under node-semver's
+  default rule, so no alternative had to be added this time. The measured
+  `evaluatePluginCompatibility` result for the shipped manifest on runtime
+  `0.2.1-alpha.4` is "no unmet requirement".
+- Contracts compared tag-by-tag between the two alphas:
+  `dsh-client-ui-workspace`'s and `dsh-client-ui-layout`'s client bundles are
+  **byte-identical**; in `dsh-client-ui-conversation` and `dsh-client-modules` the
+  changed lines do not touch `conversation.session.header.utilities`,
+  `sessionId` wiring, or the `__ModuleLoader__.load({ id, factory })`
+  registration contract (the loader's change is a new boot-manifest release
+  identity). The row still carries `data-row-key="session:<id>"` with
+  `role="treeitem"` + `aria-selected`.
+- Measured end-to-end on the running `0.2.1-alpha.4` web profile: the plugin's
+  own route answers `GET /plugins/dsh-session-colors/marks` with `401` through the
+  connection fence while an unregistered path under the same prefix answers
+  `404`; the composed boot graph serves this package's `client.js` and the served
+  bundle contains `src/client.js` verbatim; the client half prints
+  `build=host-routes+animated-rows` with no page error; the header control renders
+  on a marked Session and opens the picker; and each marked row that is at least
+  partly inside the sidebar's scroll viewport gets its 4x16 chip, vertically
+  centred in the 32px row (`chip.top` = row `top` + 8) at `left=14` against
+  `row.left=12`, clear of the status dot.
+- `npm test` passes on this tree (38/38) and `npm pack --dry-run` still ships
+  exactly the 11 whitelisted files.
+
 ## [0.1.8] - 2026-10-15
 
 Verified against DeepSeek Harness `0.2.1-alpha.3` (the latest alpha) as well as
