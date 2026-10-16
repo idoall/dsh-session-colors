@@ -563,7 +563,12 @@ test('the Host dependency is declared the way DSH 0.1.7 resolves a linked plugin
   // The declared load range must actually admit the verified release: a range
   // written for an older alpha excludes a newer prerelease under node-semver.
   assert.equal(pkg.dsh.compatibility.dshReleases['0.1.7-alpha.2'], 'compatible')
-  assert.match(pkg.dsh.engines.dsh, /0\.1\.7/)
+  // The DSH requirement lives at the TOP-LEVEL `engines.dsh`: from DSH
+  // 0.2.1-alpha.4 that range decides the gate alone (peerDependencies are then
+  // ignored), and the marketplace reads the same field. The namespaced
+  // `dsh.engines.dsh` this file used to assert is read by nothing.
+  assert.equal(pkg.dsh.engines, undefined)
+  assert.match(pkg.engines.dsh, /0\.1\.7/)
   for (const peer of ['@deepseek-ai/dsh-client-ui-layout', '@deepseek-ai/dsh-client-ui-conversation']) {
     assert.match(pkg.peerDependencies[peer], /0\.1\.7/)
   }
