@@ -8,6 +8,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.12] - 2026-10-23
+
+### Changed
+
+- Record DSH `0.2.1-rc.3` compatibility, retaining all nine previously verified
+  versions. Update both READMEs and bilingual release notes to plugin `0.1.12`.
+- Strengthen documentation tests to require the banner, current-release paragraph
+  and unique npm-latest matrix row to agree with the manifest's current versions.
+- No executable-code or load-range change. The installed rc.3 precheck accepts
+  the manifest under the existing top-level `engines.dsh` range; both default
+  semver and `includePrerelease` admit it.
+
+### Verification and limits
+
+- Live Host inspection confirms the plugin is mounted and its exact-route and
+  connection-auth contracts remain compatible. An unauthenticated marks request
+  returns 401; an unregistered sibling route returns 404. No real marks, Sessions,
+  profile configuration or other plugins were modified.
+- Official rc.2 artifacts were compared with installed rc.3 artifacts. The
+  consumed Host webserver/connection contracts and the target Client slot
+  declarations remain compatible. DSH does contain navigation, draft and message
+  expansion changes: this is not a claim that all artifacts are byte-identical.
+- The 38 existing unit tests pass. Live Client inspection did not expose the
+  conversation header slot, so no new visual/mobile/browser end-to-end result is
+  claimed. Existing DOM/fiber dependence and silent persistence-write failures
+  remain pre-existing limitations, not regressions identified in this upgrade.
+- Release verification includes extracting the published npm tarball and comparing
+  its complete file set and bytes against the release tag, including both
+  READMEs, the manifest, source and CHANGELOG.
+
 ## [0.1.11] - 2026-10-17
 
 Verified against DeepSeek Harness `0.2.1-rc.2` (the latest `0.2.1` release
