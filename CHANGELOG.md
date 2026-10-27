@@ -8,6 +8,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.13] - 2026-10-27
+
+### Changed
+
+- Record DSH `0.2.1-rc.4` compatibility, retaining all ten previously verified
+  versions. Update both READMEs and bilingual release notes to plugin `0.1.13`.
+- No executable-code or load-range change. The installed rc.4 precheck accepts
+  the manifest under the existing top-level `engines.dsh` range; both default
+  semver and `includePrerelease` admit it.
+
+### Verification and limits
+
+- Official `0.2.1-rc.3` artifacts were compared with the installed `0.2.1-rc.4`
+  artifacts for every package this plugin consumes. The DSH CLI's `lib/` — the
+  manifest and load-range gate — is byte-identical; `dsh-host-webserver`,
+  `dsh-client-connection`, `dsh-client-ui-layout`, `dsh-client-ui-workspace`,
+  `dsh-client-ui-renderer` (the `slots`, `locale` and `layout` services) and
+  `dsh-web-app` differ only in `package.json`; `dsh-client-modules` differs only in
+  its recorded commit hash and version. Both target slot declarations
+  (`conversation.session.header.utilities`, `shell.overlay`) are unchanged. The
+  conversation and sidebar Client bundles do carry real changes (a View-tab
+  tooltip and the sidebar build string), so this is not a claim that all DSH
+  artifacts are byte-identical.
+- A disposable profile (a fresh `DSH_HOME`, never the user's) installed the
+  `0.1.13` tarball and booted `dsh web` on `0.2.1-rc.4` on a spare port with no
+  compatibility denial: the marks route answered `200` for an authenticated `GET`,
+  round-tripped a `POST`ed mark, and the browser half was served at its revisioned
+  boot URL (52 732 bytes) in the `__ModuleLoader__` format. The throwaway profile
+  and its server were removed afterwards; the user's profile, running service and
+  other workspaces' plugins were not touched.
+- Live Host inspection confirms the plugin is mounted under rc.4 and its own
+  authenticated route answers 401 to an unauthenticated request. No real marks,
+  Sessions, profile configuration or other plugins were modified.
+- The 38 existing unit tests pass. The header control's rendered appearance was
+  not inspected in a real browser, so no fresh visual result is claimed. Existing
+  DOM/fiber dependence and silent persistence-write failures remain pre-existing
+  limitations, not regressions identified in this upgrade.
+- Release verification includes extracting the published npm tarball and comparing
+  its file set against the release tag, including both READMEs, the manifest,
+  source and CHANGELOG.
+
 ## [0.1.12] - 2026-10-23
 
 ### Changed
