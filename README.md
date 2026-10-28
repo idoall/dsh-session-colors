@@ -23,7 +23,7 @@
   <a href="#development">Development</a>
 </p>
 
-> **✅ Supports DSH `0.2.1-rc.4` — the latest `0.2.1` release candidate (npm `next`).** Compatibility checked against the installed runtime, as well as the previously verified `0.2.1-rc.3`, `0.2.1-rc.2`, `0.2.1-alpha.5`, `0.2.1-alpha.4`, `0.2.1-alpha.3`, `0.2.0-rc.2`, `0.2.0-rc.1`, `0.1.7-rc.2`, `0.1.7-rc.1` and `0.1.7-alpha.2`; see [Compatibility](#compatibility).
+> **✅ Supports DSH `0.2.2-alpha.2` — the current `alpha` build (npm `alpha`).** Compatibility checked against the installed runtime, as well as the previously verified `0.2.1-rc.4`, `0.2.1-rc.3`, `0.2.1-rc.2`, `0.2.1-alpha.5`, `0.2.1-alpha.4`, `0.2.1-alpha.3`, `0.2.0-rc.2`, `0.2.0-rc.1`, `0.1.7-rc.2`, `0.1.7-rc.1` and `0.1.7-alpha.2`; see [Compatibility](#compatibility).
 
 > DSH Session Colors is a DeepSeek Harness community plugin. It does not modify
 > DSH core and does not rewrite any Session or Workspace data: a mark is only
@@ -71,9 +71,9 @@ Requirements:
 
 - DeepSeek Harness with a Web profile
 - Node.js 20 or newer
-- **Verified DSH version: `0.2.1-rc.4`** (the latest `0.2.1` release candidate),
-  `0.2.1-rc.3`, `0.2.1-rc.2`, `0.2.1-alpha.5`, `0.2.1-alpha.4`, `0.2.1-alpha.3`, `0.2.0-rc.2`, `0.2.0-rc.1`,
-  `0.1.7-rc.2`, `0.1.7-rc.1` and `0.1.7-alpha.2` — plugin `0.1.13`
+- **Verified DSH version: `0.2.2-alpha.2`** (the current `alpha` build),
+  `0.2.1-rc.4`, `0.2.1-rc.3`, `0.2.1-rc.2`, `0.2.1-alpha.5`, `0.2.1-alpha.4`, `0.2.1-alpha.3`, `0.2.0-rc.2`, `0.2.0-rc.1`,
+  `0.1.7-rc.2`, `0.1.7-rc.1` and `0.1.7-alpha.2` — plugin `0.1.14`
   (see [Compatibility](#compatibility))
 
 ```sh
@@ -122,14 +122,15 @@ stored as HSVA, so alpha round-trips exactly.
 
 ## Compatibility
 
-Current release: plugin **`0.1.13`** is compatibility-checked against DeepSeek Harness
-**`0.2.1-rc.4`** — the latest `0.2.1` release candidate (npm `next`) — and retains
-previous verification for **`0.2.1-rc.3`**, **`0.2.1-rc.2`**, **`0.2.1-alpha.5`**, **`0.2.1-alpha.4`**, **`0.2.1-alpha.3`**, **`0.2.0-rc.2`**,
+Current release: plugin **`0.1.14`** is compatibility-checked against DeepSeek Harness
+**`0.2.2-alpha.2`** — the current `alpha` build (npm `alpha`) — and retains
+previous verification for **`0.2.1-rc.4`**, **`0.2.1-rc.3`**, **`0.2.1-rc.2`**, **`0.2.1-alpha.5`**, **`0.2.1-alpha.4`**, **`0.2.1-alpha.3`**, **`0.2.0-rc.2`**,
 **`0.2.0-rc.1`**, **`0.1.7-rc.2`**, **`0.1.7-rc.1`** and **`0.1.7-alpha.2`**.
 
 | Plugin version | Verified DeepSeek Harness | npm status | What it is |
 | --- | --- | --- | --- |
-| **`0.1.13`** | **`0.2.1-rc.4`** (latest `0.2.1` RC), `0.2.1-rc.3`, `0.2.1-rc.2`, `0.2.1-alpha.5`, `0.2.1-alpha.4`, `0.2.1-alpha.3`, `0.2.0-rc.2`, `0.2.0-rc.1`, `0.1.7-rc.2`, `0.1.7-rc.1`, `0.1.7-alpha.2` | `latest` | Records DSH `0.2.1-rc.4` compatibility. No executable-code or load-range change; upgrading from `0.1.12` needs no migration. |
+| **`0.1.14`** | **`0.2.2-alpha.2`** (alpha), `0.2.1-rc.4`, `0.2.1-rc.3`, `0.2.1-rc.2`, `0.2.1-alpha.5`, `0.2.1-alpha.4`, `0.2.1-alpha.3`, `0.2.0-rc.2`, `0.2.0-rc.1`, `0.1.7-rc.2`, `0.1.7-rc.1`, `0.1.7-alpha.2` | `latest` | Records DSH `0.2.2-alpha.2` compatibility and adds the `0.2.2` prerelease tuple to the declared load range. No executable-code change; upgrading from `0.1.13` needs no migration. |
+| `0.1.13` | `0.2.1-rc.4` (latest `0.2.1` RC), `0.2.1-rc.3`, `0.2.1-rc.2`, `0.2.1-alpha.5`, `0.2.1-alpha.4`, `0.2.1-alpha.3`, `0.2.0-rc.2`, `0.2.0-rc.1`, `0.1.7-rc.2`, `0.1.7-rc.1`, `0.1.7-alpha.2` | published | Records DSH `0.2.1-rc.4` compatibility. No executable-code or load-range change; upgrading from `0.1.12` needs no migration. |
 | `0.1.12` | `0.2.1-rc.3` (RC), `0.2.1-rc.2`, `0.2.1-alpha.5`, `0.2.1-alpha.4`, `0.2.1-alpha.3`, `0.2.0-rc.2`, `0.2.0-rc.1`, `0.1.7-rc.2`, `0.1.7-rc.1`, `0.1.7-alpha.2` | published | Records DSH `0.2.1-rc.3` compatibility. No executable-code or load-range change; upgrading from `0.1.11` needs no migration. |
 | `0.1.11` | `0.2.1-rc.2` (RC), `0.2.1-alpha.5`, `0.2.1-alpha.4`, `0.2.1-alpha.3`, `0.2.0-rc.2`, `0.2.0-rc.1`, `0.1.7-rc.2`, `0.1.7-rc.1`, `0.1.7-alpha.2` | published | Verifies the same code on DSH `0.2.1-rc.2`, where every package this plugin consumes is byte-identical to `0.2.1-alpha.5`. No logic change over `0.1.10`; upgrading needs no migration. |
 | `0.1.10` | `0.2.1-alpha.5` (alpha), `0.2.1-alpha.4`, `0.2.1-alpha.3`, `0.2.0-rc.2`, `0.2.0-rc.1`, `0.1.7-rc.2`, `0.1.7-rc.1`, `0.1.7-alpha.2` | published | Verifies the same code on DSH `0.2.1-alpha.5`, where every package this plugin consumes is byte-identical to `0.2.1-alpha.4`. No logic change over `0.1.9`; upgrading needs no migration. |
@@ -144,31 +145,46 @@ previous verification for **`0.2.1-rc.3`**, **`0.2.1-rc.2`**, **`0.2.1-alpha.5`*
 | `0.1.1` | `0.1.6-alpha.2` | published | Documentation only: the packaged README no longer says "not published", and the market screenshots are declared. |
 | `0.1.0` | `0.1.6-alpha.2` | published | First release: Session colour marks, Host-side storage, visible inside a phone's sidebar drawer |
 
-**`0.1.13` supports DSH `0.2.1-rc.4`, the latest `0.2.1` release candidate.**
-This patch records compatibility without changing executable code or the load
-range. Every package this plugin consumes was compared between the published
-`0.2.1-rc.3` and the installed `0.2.1-rc.4`: the CLI that evaluates a plugin's
-manifest and load range is byte-identical, the Host `webServer` and `connection`
-contracts and the Client `slots`, `locale` and `layout` services are unchanged,
-and both target slot declarations (`conversation.session.header.utilities` and
-`shell.overlay`) are unchanged. A disposable profile installed the `0.1.13`
-tarball and booted `dsh web` on `0.2.1-rc.4` with no compatibility denial: the
-marks route answered `200` for an authenticated `GET`, round-tripped a `POST`ed
-mark, and the browser half was served at its revisioned boot URL in the
-`__ModuleLoader__` format. That check ran in its own throwaway `DSH_HOME` on a
-spare port; the user's profile and running service were not touched. The header
-control's rendered appearance was not inspected in a real browser, so this
-release does **not** claim a fresh visual verification. Existing unit tests cover
-the picker, store and chip geometry.
+**`0.1.14` supports DSH `0.2.2-alpha.2`, the current `alpha` build.**
+This patch records compatibility and adds the `0.2.2` prerelease tuple to the
+declared load range; executable code is unchanged. Every package this plugin
+consumes was compared between the published `0.2.1-rc.4` and the installed
+`0.2.2-alpha.2`. The Host `webServer` service still registers handler routes
+(`kind`/`path`/`handler`) and only *adds* an optional Fetch-resource form; the
+`connection` fence still exposes `requestRejection`. The browser loader still
+accepts `window.__ModuleLoader__.load({ id, factory })` and still seeds `react`
+and `react-dom`; both consumed slot declarations
+(`conversation.session.header.utilities` and `shell.overlay`) and their owner
+props are unchanged. The sidebar keeps `data-row-key="session:<id>"`,
+`role="treeitem"` with `aria-selected`, and the 32 px row height the chip geometry
+was measured against. The row animation moved out of the workspace bundle into the
+shell-seeded `@deepseek-ai/dsh-client-ui-primitives` static module, with the same
+`rowKeys`/Web-Animations behaviour, and its exit clones still drop `data-row-key`
+so no chip is painted for a fading copy. `locale.register` still requires only the
+`zh`/`en` baseline; six more locales became optional, and this plugin deliberately
+falls back to English for them.
 
-The existing `0.2.1` comparator admits `0.2.1-rc.4` under both DSH's
-`includePrerelease` precheck and node-semver's default rule. npm `next` names
-`0.2.1-rc.4`; npm `latest` for DSH still names `0.2.1-rc.2` at verification time.
+The previous `0.2.1` comparator still admits `0.2.1-rc.4`, but node-semver's
+default rule does not extend it to `0.2.2-alpha.2`: a prerelease is admitted only
+by a comparator naming its own `major.minor.patch`. The load range therefore gains
+a sixth alternative, `>=0.2.2-alpha.2 <0.3.0`. DSH's own precheck evaluates with
+`includePrerelease` and already accepted the old range, so this is a declaration
+fix rather than a break. npm `alpha` names `0.2.2-alpha.2`; npm `next` names
+`0.2.1-rc.4` and npm `latest` names `0.2.1-rc.2` at verification time.
+
+A disposable profile installed the `0.1.14` tarball and booted `dsh web` on
+`0.2.2-alpha.2` with no compatibility denial: the marks route answered `200` for
+an authenticated `GET`, round-tripped a `POST`ed mark, and the boot graph carried
+`@idoall/dsh-session-colors` with its own revisioned client bundle. That check ran
+in its own throwaway `DSH_HOME` on a spare port; the user's profile and running
+service were not touched. The header control's rendered appearance was not
+inspected in a real browser, so this release does **not** claim a fresh visual
+verification; the 38 unit tests cover the picker, store and chip geometry.
 
 `0.1.9` moved that range to top-level `engines.dsh`, the field DSH `0.2.1-alpha.4`
 made authoritative — it decides alone when present, and the marketplace reads the
 same field. That relocation still stands and is unchanged here.
-**Upgrading from `0.1.12` needs no migration.** On an older DSH — including
+**Upgrading from `0.1.13` needs no migration.** On an older DSH — including
 `0.1.6-alpha.2` — keep plugin **`0.1.2`**. Newer DSH releases are not
 auto-declared compatible.
 
@@ -178,25 +194,25 @@ auto-declared compatible.
   sections word-for-word with it and inside the range both `peerDependencies` and
   `engines.dsh` declare. A DSH version that is not listed is **never claimed as
   compatible**.
-- `peerDependencies` declare `>=0.1.7-alpha.2 <0.2.0-0 || 0.2.0-rc.1 || 0.2.0-rc.2 || >=0.2.0 <0.3.0 || >=0.2.1-alpha.3 <0.3.0`
+- `peerDependencies` declare `>=0.1.7-alpha.2 <0.2.0-0 || 0.2.0-rc.1 || 0.2.0-rc.2 || >=0.2.0 <0.3.0 || >=0.2.1-alpha.3 <0.3.0 || >=0.2.2-alpha.2 <0.3.0`
   for `dsh-client-ui-layout` and `dsh-client-ui-conversation`, and top-level
   `engines.dsh` declares the same range as the Host requirement: that is the
-  range allowed to **load**, which is not the same as verified. The five
+  range allowed to **load**, which is not the same as verified. The six
   alternatives are deliberate: a prerelease is admitted only when a comparator
   names its exact `major.minor.patch`, so the `0.1.7` line needs its own
   comparator, `0.2.0-rc.1` and `0.2.0-rc.2` are each pinned exactly (a `0.2.0-rc.3`
   nobody tested stays out), the stable `0.2.0` line is admitted so the plugin
-  survives the final release, and the `0.2.1` line covers the verified alphas and RCs.
+  survives the final release, and the `0.2.1` and `0.2.2` lines each cover the
+  verified alphas and RCs of their own tuple.
   The lower bound names the alpha on purpose: a range
   like `>=0.1.6-0 <0.2.0` admits none of the verified versions.
 - DSH evaluates those requirements at boot and **disables** a plugin row whose
   range is not satisfied, so a correct range is load-bearing rather than
   cosmetic. Since `0.2.1-alpha.4`, the boot precheck gives top-level
   `engines.dsh` priority over peer ranges (which is why `0.1.9` moved the range
-  there). The installed `0.2.1-rc.4` precheck accepts this package. The rc.3 →
-  rc.4 comparison keeps the CLI byte-identical while the conversation and sidebar
-  Client bundles do change; compatibility here does not mean all DSH artifacts are
-  byte-identical.
+  there). The installed `0.2.2-alpha.2` precheck accepts this package. The rc.4 →
+  alpha.2 comparison changes the conversation, workspace and locale Client
+  bundles; compatibility here does not mean all DSH artifacts are byte-identical.
 - DSH 0.1.7-rc.2 added a real Session-row seat,
   `sidebar.session.row.leading` — a 16px cell before the title. The chip
   deliberately **stays on its own click-through layer**: that seat shares its cell

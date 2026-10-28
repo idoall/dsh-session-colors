@@ -8,6 +8,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.14] - 2026-10-28
+
+### Changed
+
+- Record DSH `0.2.2-alpha.2` compatibility, retaining all eleven previously
+  verified versions. Update both READMEs and the bilingual release notes to
+  plugin `0.1.14`.
+- Add the `0.2.2` prerelease tuple (`>=0.2.2-alpha.2 <0.3.0`) to `engines.dsh`
+  and to both consumed peer ranges. DSH's `includePrerelease` precheck already
+  admitted the installed alpha under the old range, but node-semver's default rule
+  admits a prerelease only through a comparator naming the same
+  `major.minor.patch`, so the declaration now matches the verified release.
+- No executable-code change.
+
+### Verification and limits
+
+- Official `0.2.1-rc.4` artifacts were compared with the installed
+  `0.2.2-alpha.2` artifacts for every package this plugin consumes.
+  `dsh-host-webserver` keeps `kind`/`path`/`handler` routes and only adds the
+  optional Fetch-resource form and `readResource`; `dsh-client-connection` keeps
+  `requestRejection` and only adds an optional `resolveAsset` hook;
+  `dsh-client-modules` keeps `window.__ModuleLoader__.load({ id, factory })` and
+  the shell seeds, adding `require.asset` and package-asset routes;
+  `dsh-web-frontend` changes only hashed asset names and PWA icons, keeping the
+  `__ModuleLoader__` facade and the `react`/`react-dom` seeds.
+- `dsh-client-ui-layout` changes only its locale dictionaries, so the
+  `shell.overlay` declaration and props are unchanged. In
+  `dsh-client-ui-conversation`, `conversation.session.header.utilities` and its
+  owner props are unchanged. In `dsh-client-ui-workspace`, Session rows keep
+  `data-row-key="session:<id>"`, `role="treeitem"`, `aria-selected` and the 32 px
+  height; `AnimatedRows` moved into the shell-seeded
+  `@deepseek-ai/dsh-client-ui-primitives` module with the same `rowKeys` and
+  Web-Animations behaviour, and its exit clones still drop `data-row-key`. The new
+  `sidebar.session.row.trailing` seat and the access hooks are additive.
+  `dsh-client-locale` still requires only the `zh`/`en` baseline; six new locales
+  are optional and this plugin deliberately falls back to English for them.
+- A disposable profile (a fresh `DSH_HOME`, never the user's) installed the
+  `0.1.14` tarball and booted `dsh web` on `0.2.2-alpha.2` on a spare port with no
+  compatibility denial: the marks route answered `200` for an authenticated `GET`,
+  round-tripped a `POST`ed mark, and the boot graph carried
+  `@idoall/dsh-session-colors` with its own revisioned client bundle. The
+  throwaway profile and its server were removed afterwards; the user's profile,
+  running service and other workspaces' plugins were not touched.
+- The 38 existing unit tests pass. The header control's rendered appearance was
+  not inspected in a real browser, so no fresh visual result is claimed. Existing
+  DOM/fiber dependence and silent persistence-write failures remain pre-existing
+  limitations, not regressions identified in this upgrade.
+
 ## [0.1.13] - 2026-10-27
 
 ### Changed
