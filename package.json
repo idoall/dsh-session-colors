@@ -1,6 +1,6 @@
 {
   "name": "@idoall/dsh-session-colors",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "type": "module",
   "description": "DSH web plugin: give any Session a colour mark, shown as a chip in the sidebar and picked from the conversation header. Marks are stored on the Host, so a colour chosen on one device is visible on every other one — including over LAN and tunnels.",
   "main": "./src/index.js",
@@ -22,6 +22,7 @@
     "manifestVersion": 1,
     "compatibility": {
       "dshReleases": {
+        "0.2.2-alpha.2": "compatible",
         "0.2.1-rc.4": "compatible",
         "0.2.1-rc.3": "compatible",
         "0.2.1-rc.2": "compatible",
@@ -53,8 +54,8 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-client-ui-conversation": ">=0.1.7-alpha.2 <0.2.0-0 || 0.2.0-rc.1 || 0.2.0-rc.2 || >=0.2.0 <0.3.0 || >=0.2.1-alpha.3 <0.3.0",
-    "@deepseek-ai/dsh-client-ui-layout": ">=0.1.7-alpha.2 <0.2.0-0 || 0.2.0-rc.1 || 0.2.0-rc.2 || >=0.2.0 <0.3.0 || >=0.2.1-alpha.3 <0.3.0",
+    "@deepseek-ai/dsh-client-ui-conversation": ">=0.1.7-alpha.2 <0.2.0-0 || 0.2.0-rc.1 || 0.2.0-rc.2 || >=0.2.0 <0.3.0 || >=0.2.1-alpha.3 <0.3.0 || >=0.2.2-alpha.2 <0.3.0",
+    "@deepseek-ai/dsh-client-ui-layout": ">=0.1.7-alpha.2 <0.2.0-0 || 0.2.0-rc.1 || 0.2.0-rc.2 || >=0.2.0 <0.3.0 || >=0.2.1-alpha.3 <0.3.0 || >=0.2.2-alpha.2 <0.3.0",
     "@deepseek-ai/schemastery": "^3.18.2",
     "react": "^18.2.0"
   },
@@ -74,7 +75,7 @@
   "license": "MIT",
   "engines": {
     "node": ">=20",
-    "dsh": ">=0.1.7-alpha.2 <0.2.0-0 || 0.2.0-rc.1 || 0.2.0-rc.2 || >=0.2.0 <0.3.0 || >=0.2.1-alpha.3 <0.3.0"
+    "dsh": ">=0.1.7-alpha.2 <0.2.0-0 || 0.2.0-rc.1 || 0.2.0-rc.2 || >=0.2.0 <0.3.0 || >=0.2.1-alpha.3 <0.3.0 || >=0.2.2-alpha.2 <0.3.0"
   },
   "repository": {
     "type": "git",
