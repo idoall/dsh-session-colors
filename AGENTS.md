@@ -11,8 +11,8 @@ The plugin is implemented and verified, and is installed into the local `web`
 profile from this directory. This repository holds **only** the shipping plugin
 and its own records: the earlier "pinned Sessions" proposal was abandoned and its
 documents, demos and tests have been deleted, so there is no second spec to tell
-apart. The design record is `docs/plugin-design.zh.md`; `docs/` may hold nothing
-else besides `docs/images/`, which a test enforces.
+apart. The design record is `docs/plugin-design.zh.md`; `docs/` also holds
+`docs/images/`, `docs/RELEASING.md` and bilingual `docs/releases/`, which a test enforces.
 
 ## Current authority
 

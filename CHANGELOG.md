@@ -8,6 +8,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.15] - 2026-11-03
+
+### Fixed
+
+- Follow DSH `0.2.2-alpha.3` native sidebar drawer attributes
+  (`data-sidebar-collapsed`, `data-sidebar-drawer`, `data-sidebar-instant`).
+  Retained rows can move without child mutations or transition events when
+  reduced motion or instant close is used; chips now remeasure promptly.
+  Keep the existing bounded animation tracking and click-through overlay.
+
+### Changed
+
+- Record alpha.3 compatibility, retaining the 12 previously assessed releases;
+  synchronise both READMEs and bilingual Release notes to `0.1.15`.
+- Correct stale source comments, test documentation and npm channel descriptions.
+  DSH `alpha` is `0.2.2-alpha.3`; `latest` / `next` are `0.2.1-rc.5` as of
+  2026-11-03. rc.5 was not the installed runtime and is not newly declared verified.
+- Host code, storage format and DSH load range remain unchanged; no migration.
+
+### Verification and limits
+
+- Compare official alpha.2 / alpha.3 artifacts and review installed contracts.
+  Host route registration/authentication, module loading, locale, target slots
+  and ordinary Session-row identities remain compatible.
+- All 39 unit tests pass. The new no-transition drawer regression fails on the
+  old implementation and passes after the fix.
+- Browser access to the existing GUI returned HTTP 401; Client inspection did not
+  supply a usable slot tree. No fresh real GUI/mobile/cross-device acceptance is
+  claimed, no temporary server was started, and no real marks were changed.
+- Existing limits remain: search-result `result.id` is not recognised by the
+  fiber fallback; disk-write failures may silently fall back to memory. Installed
+  schemastery `3.18.6-alpha.2` exposes the needed API but does not satisfy the
+  existing `^3.18.2` default prerelease peer rule. Dependencies are unchanged.
+
 ## [0.1.14] - 2026-10-28
 
 ### Changed
