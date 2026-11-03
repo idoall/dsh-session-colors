@@ -81,7 +81,7 @@ function loadClient(host = fakeHost()) {
     if (id === 'react-dom') return ReactDOM
     throw new Error(`unexpected require: ${id}`)
   })
-  return { registration, exports, required, storage, listeners, documentStub }
+  return { registration, exports, required, storage, listeners, documentStub, React, sandbox }
 }
 
 /** A client context stand-in recording every slot registration. */
@@ -442,6 +442,43 @@ test('the chip layer follows the animated rows DSH 0.1.7 introduced', () => {
   assert.match(source, /removeEventListener\('resize', kick\)/)
   assert.match(source, /const SETTLE_FRAMES = \d+/)
   assert.match(source, /cancelFrame\(frame\)/)
+})
+
+test('the chip layer follows alpha.3 drawer attributes without transition events', () => {
+  const { exports, React, sandbox, documentStub } = loadClient()
+  const { ctx } = fakeContext()
+  let overlay
+  ctx.slots.register = (options, render) => {
+    if (options.name === 'shell.overlay') overlay = render
+    return () => {}
+  }
+  exports.apply(ctx)
+  const component = overlay({})
+  component.props.store.dispose()
+  const watchers = []
+  const cleanups = []
+  let measurements = 0
+  let scheduled = 0
+  React.useEffect = (effect) => cleanups.push(effect())
+  React.useState = (initial) => [initial, () => { measurements++ }]
+  sandbox.window.requestAnimationFrame = () => ++scheduled
+  sandbox.window.cancelAnimationFrame = () => {}
+  sandbox.MutationObserver = class {
+    constructor(callback) { this.callback = callback }
+    observe(target, options) { watchers.push({ target, options, callback: this.callback }) }
+    disconnect() {}
+  }
+  component.type(component.props)
+  const initial = measurements
+  for (const attribute of ['data-sidebar-collapsed', 'data-sidebar-drawer', 'data-sidebar-instant']) {
+    const watcher = watchers.find(({ target, options }) => target === documentStub.body
+      && options.subtree && options.attributes && options.attributeFilter?.includes(attribute))
+    assert.ok(watcher, `${attribute} must trigger remeasurement even with reduced motion`)
+    watcher.callback([{ type: 'attributes', attributeName: attribute, target: {} }])
+  }
+  assert.equal(measurements, initial + 3)
+  assert.ok(scheduled > 0, 'animated and instant drawer changes share the bounded follow window')
+  for (const cleanup of cleanups) cleanup?.()
 })
 
 test('the chip layer follows a drawer that slides in without a DOM change', () => {

@@ -14,11 +14,11 @@
  *   its own and a phone adapter may promote the sidebar above it — see
  *   `ChipsLayer` and `layerZIndexOf`.
  *
- * There is no Session-row slot, so a chip cannot be rendered inside a row. The
- * layer finds rows by ARIA role and reads each row's Session id from the
- * `data-row-key` attribute DSH 0.1.7 puts on every row (`session:<id>`),
- * falling back to the React fiber the renderer attaches — the only source on a
- * build without that attribute, and still the source for search-result rows.
+ * The Session-row leading slot shares the status-dot cell and is not mounted
+ * in every row state, so the chip deliberately stays on its own layer. The
+ * layer finds rows by ARIA role and reads the Session id from the ordinary
+ * row's `data-row-key` (`session:<id>`), falling back to known React fiber props.
+ * Search-result rows without either supported identity shape are skipped.
  * That coupling is deliberate and is kept harmless: every step is guarded, an
  * unreadable row is skipped, and the layer never accepts pointer events, so a
  * future DSH change can at worst stop the chips from appearing.
@@ -681,11 +681,12 @@ window.__ModuleLoader__.load({
           const drawerObserver = new MutationObserver(kick)
           drawerObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] })
           observers.push(drawerObserver)
-          // A workspace collapse that hides rows instead of removing them
-          // produces no childList mutation, so follow the ARIA state and
-          // `hidden` as well.
+          // Retained rows can move without a childList mutation. DSH alpha.3's
+          // native drawer toggles frame attributes, not the body's class; with
+          // reduced motion or instant close there is no transition event either.
+          // Follow those attributes as well as workspace visibility state.
           const stateObserver = new MutationObserver(kick)
-          stateObserver.observe(document.body, { attributes: true, attributeFilter: ['aria-expanded', 'hidden'], subtree: true })
+          stateObserver.observe(document.body, { attributes: true, attributeFilter: ['aria-expanded', 'hidden', 'data-sidebar-collapsed', 'data-sidebar-drawer', 'data-sidebar-instant'], subtree: true })
           observers.push(stateObserver)
         } catch {
           // Without observers the layer still follows scroll, resize and transitions.
