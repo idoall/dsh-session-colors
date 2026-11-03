@@ -199,6 +199,17 @@ test('both READMEs state the DSH versions this build is verified against', () =>
   }
   for (const [name, body] of [['README.md', read('README.md')], ['README.zh.md', read('README.zh.md')]]) {
     assert.ok(body.includes(`\`${pkg.version}\``), `${name} must name the plugin version ${pkg.version}`);
+    const newest = verified[0];
+    const banner = body.split('\n').find(line => line.startsWith('> **✅'));
+    assert.ok(banner?.includes(`\`${newest}\``), `${name} banner must name newest verified DSH ${newest}`);
+    const current = body.match(/(?:Current release:|当前版本：)[\s\S]*?(?=\n\n)/)?.[0];
+    assert.ok(current?.includes(`\`${pkg.version}\``) && current.includes(`\`${newest}\``), `${name} current release must align plugin and DSH versions`);
+    const latestRows = body.split('\n').filter(line => line.startsWith('|') && line.includes('| `latest` |'));
+    assert.equal(latestRows.length, 1, `${name} must have exactly one latest release row`);
+    assert.ok(latestRows[0].startsWith(`| **\`${pkg.version}\`** | **\`${newest}\`**`), `${name} latest row must align plugin and DSH versions`);
+    const notes = read(`docs/releases/v${pkg.version}.md`);
+    assert.ok(notes.includes(`\`${newest}\``), 'current release notes name newest verified DSH');
+    assert.ok(read('CHANGELOG.md').includes(`## [${pkg.version}]`), 'CHANGELOG names current release');
     // The install command must not pin a version that can rot: it either follows
     // `latest` or names the version package.json declares. A pinned command that
     // nobody bumps keeps telling users to install an old release.

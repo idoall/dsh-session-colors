@@ -8,6 +8,177 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.14] - 2026-10-28
+
+### Changed
+
+- Record DSH `0.2.2-alpha.2` compatibility, retaining all eleven previously
+  verified versions. Update both READMEs and the bilingual release notes to
+  plugin `0.1.14`.
+- Add the `0.2.2` prerelease tuple (`>=0.2.2-alpha.2 <0.3.0`) to `engines.dsh`
+  and to both consumed peer ranges. DSH's `includePrerelease` precheck already
+  admitted the installed alpha under the old range, but node-semver's default rule
+  admits a prerelease only through a comparator naming the same
+  `major.minor.patch`, so the declaration now matches the verified release.
+- No executable-code change.
+
+### Verification and limits
+
+- Official `0.2.1-rc.4` artifacts were compared with the installed
+  `0.2.2-alpha.2` artifacts for every package this plugin consumes.
+  `dsh-host-webserver` keeps `kind`/`path`/`handler` routes and only adds the
+  optional Fetch-resource form and `readResource`; `dsh-client-connection` keeps
+  `requestRejection` and only adds an optional `resolveAsset` hook;
+  `dsh-client-modules` keeps `window.__ModuleLoader__.load({ id, factory })` and
+  the shell seeds, adding `require.asset` and package-asset routes;
+  `dsh-web-frontend` changes only hashed asset names and PWA icons, keeping the
+  `__ModuleLoader__` facade and the `react`/`react-dom` seeds.
+- `dsh-client-ui-layout` changes only its locale dictionaries, so the
+  `shell.overlay` declaration and props are unchanged. In
+  `dsh-client-ui-conversation`, `conversation.session.header.utilities` and its
+  owner props are unchanged. In `dsh-client-ui-workspace`, Session rows keep
+  `data-row-key="session:<id>"`, `role="treeitem"`, `aria-selected` and the 32 px
+  height; `AnimatedRows` moved into the shell-seeded
+  `@deepseek-ai/dsh-client-ui-primitives` module with the same `rowKeys` and
+  Web-Animations behaviour, and its exit clones still drop `data-row-key`. The new
+  `sidebar.session.row.trailing` seat and the access hooks are additive.
+  `dsh-client-locale` still requires only the `zh`/`en` baseline; six new locales
+  are optional and this plugin deliberately falls back to English for them.
+- A disposable profile (a fresh `DSH_HOME`, never the user's) installed the
+  `0.1.14` tarball and booted `dsh web` on `0.2.2-alpha.2` on a spare port with no
+  compatibility denial: the marks route answered `200` for an authenticated `GET`,
+  round-tripped a `POST`ed mark, and the boot graph carried
+  `@idoall/dsh-session-colors` with its own revisioned client bundle. The
+  throwaway profile and its server were removed afterwards; the user's profile,
+  running service and other workspaces' plugins were not touched.
+- The 38 existing unit tests pass. The header control's rendered appearance was
+  not inspected in a real browser, so no fresh visual result is claimed. Existing
+  DOM/fiber dependence and silent persistence-write failures remain pre-existing
+  limitations, not regressions identified in this upgrade.
+
+## [0.1.13] - 2026-10-27
+
+### Changed
+
+- Record DSH `0.2.1-rc.4` compatibility, retaining all ten previously verified
+  versions. Update both READMEs and bilingual release notes to plugin `0.1.13`.
+- No executable-code or load-range change. The installed rc.4 precheck accepts
+  the manifest under the existing top-level `engines.dsh` range; both default
+  semver and `includePrerelease` admit it.
+
+### Verification and limits
+
+- Official `0.2.1-rc.3` artifacts were compared with the installed `0.2.1-rc.4`
+  artifacts for every package this plugin consumes. The DSH CLI's `lib/` — the
+  manifest and load-range gate — is byte-identical; `dsh-host-webserver`,
+  `dsh-client-connection`, `dsh-client-ui-layout`, `dsh-client-ui-workspace`,
+  `dsh-client-ui-renderer` (the `slots`, `locale` and `layout` services) and
+  `dsh-web-app` differ only in `package.json`; `dsh-client-modules` differs only in
+  its recorded commit hash and version. Both target slot declarations
+  (`conversation.session.header.utilities`, `shell.overlay`) are unchanged. The
+  conversation and sidebar Client bundles do carry real changes (a View-tab
+  tooltip and the sidebar build string), so this is not a claim that all DSH
+  artifacts are byte-identical.
+- A disposable profile (a fresh `DSH_HOME`, never the user's) installed the
+  `0.1.13` tarball and booted `dsh web` on `0.2.1-rc.4` on a spare port with no
+  compatibility denial: the marks route answered `200` for an authenticated `GET`,
+  round-tripped a `POST`ed mark, and the browser half was served at its revisioned
+  boot URL (52 732 bytes) in the `__ModuleLoader__` format. The throwaway profile
+  and its server were removed afterwards; the user's profile, running service and
+  other workspaces' plugins were not touched.
+- Live Host inspection confirms the plugin is mounted under rc.4 and its own
+  authenticated route answers 401 to an unauthenticated request. No real marks,
+  Sessions, profile configuration or other plugins were modified.
+- The 38 existing unit tests pass. The header control's rendered appearance was
+  not inspected in a real browser, so no fresh visual result is claimed. Existing
+  DOM/fiber dependence and silent persistence-write failures remain pre-existing
+  limitations, not regressions identified in this upgrade.
+- Release verification includes extracting the published npm tarball and comparing
+  its file set against the release tag, including both READMEs, the manifest,
+  source and CHANGELOG.
+
+## [0.1.12] - 2026-10-23
+
+### Changed
+
+- Record DSH `0.2.1-rc.3` compatibility, retaining all nine previously verified
+  versions. Update both READMEs and bilingual release notes to plugin `0.1.12`.
+- Strengthen documentation tests to require the banner, current-release paragraph
+  and unique npm-latest matrix row to agree with the manifest's current versions.
+- No executable-code or load-range change. The installed rc.3 precheck accepts
+  the manifest under the existing top-level `engines.dsh` range; both default
+  semver and `includePrerelease` admit it.
+
+### Verification and limits
+
+- Live Host inspection confirms the plugin is mounted and its exact-route and
+  connection-auth contracts remain compatible. An unauthenticated marks request
+  returns 401; an unregistered sibling route returns 404. No real marks, Sessions,
+  profile configuration or other plugins were modified.
+- Official rc.2 artifacts were compared with installed rc.3 artifacts. The
+  consumed Host webserver/connection contracts and the target Client slot
+  declarations remain compatible. DSH does contain navigation, draft and message
+  expansion changes: this is not a claim that all artifacts are byte-identical.
+- The 38 existing unit tests pass. Live Client inspection did not expose the
+  conversation header slot, so no new visual/mobile/browser end-to-end result is
+  claimed. Existing DOM/fiber dependence and silent persistence-write failures
+  remain pre-existing limitations, not regressions identified in this upgrade.
+- Release verification includes extracting the published npm tarball and comparing
+  its complete file set and bytes against the release tag, including both
+  READMEs, the manifest, source and CHANGELOG.
+
+## [0.1.11] - 2026-10-17
+
+Verified against DeepSeek Harness `0.2.1-rc.2` (the latest `0.2.1` release
+candidate) as well as `0.2.1-alpha.5`, `0.2.1-alpha.4`, `0.2.1-alpha.3`,
+`0.2.0-rc.2`, `0.2.0-rc.1`, `0.1.7-rc.2`, `0.1.7-rc.1` and `0.1.7-alpha.2`. No
+logic change and no load-range change: every package this plugin consumes is
+byte-identical between `0.2.1-alpha.5` and `0.2.1-rc.2`, and the `0.2.1` line
+declared in `0.1.9` already admits prereleases of that tuple.
+
+### Changed
+
+- `dsh.compatibility.dshReleases` now records `0.2.1-rc.2` alongside
+  `0.2.1-alpha.5`, `0.2.1-alpha.4`, `0.2.1-alpha.3`, `0.2.0-rc.2`, `0.2.0-rc.1`,
+  `0.1.7-rc.2`, `0.1.7-rc.1` and `0.1.7-alpha.2`; both READMEs state all nine
+  versions and name `0.2.1-rc.2` as the newest one.
+- No other declaration moved. The range still lives in the top-level
+  `engines.dsh` that `0.1.9` moved it to, and it stays unchanged because a
+  comparator naming the `0.2.1` tuple admits that tuple's prereleases: the RC
+  satisfies it under both DSH's `includePrerelease` precheck and node-semver's
+  default rule, and the `0.2.1` final release will be admitted by the same
+  alternative.
+
+### Notes
+
+- Measured difference between the two DSH releases for everything this plugin
+  touches: the client bundles of `dsh-client-ui-workspace`,
+  `dsh-client-ui-conversation`, `dsh-client-ui-layout` and `dsh-client-modules`,
+  the compatibility precheck in `dsh-app-boot/lib/index.js`, and the Host-side
+  `dsh-host-webserver` and `dsh-client-connection` code are all
+  **byte-identical** — a diff of zero lines each.
+- `evaluatePluginCompatibility` on the shipped manifest with runtime
+  `0.2.1-rc.2` reports no unmet requirement, through the `engines.dsh`-first
+  branch that `0.2.1-alpha.4` introduced.
+- Measured end-to-end on the running `0.2.1-rc.2` web profile: the boot log
+  disables no row of this plugin; the plugin's own route answers
+  `GET /plugins/dsh-session-colors/marks` with `401` through the connection fence
+  while an unregistered path under the same prefix answers `404`; the composed
+  boot graph serves this package's `client.js` and the served bundle contains
+  `src/client.js` verbatim; the client half prints
+  `build=host-routes+animated-rows` with no page error; the header control renders
+  inside the conversation header's utilities cluster on an open Session and the
+  picker opens and closes; and the chip layer is present, click-through and
+  reports `ready`. No chip was painted in this measurement, which is correct: the
+  two marks in the store belong to Sessions that are not in the rendered sidebar,
+  and the layer deliberately skips rows outside the scroll viewport.
+- Published package contents were diffed against this repository: every one of
+  the 11 whitelisted files in `@idoall/dsh-session-colors@0.1.10` on npm is
+  byte-identical to the tagged source, and the same check is repeated for
+  `0.1.11` after publication.
+- `npm test` passes on this tree (38/38) and `npm pack --dry-run` still ships
+  exactly the 11 whitelisted files.
+
 ## [0.1.10] - 2026-10-16
 
 Verified against DeepSeek Harness `0.2.1-alpha.5` (the latest alpha) as well as
