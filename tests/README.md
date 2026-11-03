@@ -1,22 +1,23 @@
 # 测试入口
 
 ```sh
-npm test        # 等价于 node --test tests/*.test.mjs，34 项
+npm test        # 等价于 node --test tests/*.test.mjs，39 项
 ```
 
-仓库里只有这一套测试，覆盖的是**现在发货的插件**。已废弃的"置顶会话"线连同它的测试材料一起删掉了，不保留第二套规格或第二套测试。
+仓库只有这一套测试，覆盖当前插件；不保留已废弃的置顶会话方案。
 
 ## 覆盖
 
 | 文件 | 覆盖 |
 | --- | --- |
-| [plugin-client.test.mjs](plugin-client.test.mjs) | 26 项。浏览器半边与宿主半边：bundle 结构、两个 seat、缺 slot 降级、Host 路由存储与跨设备收敛、失败可见、坏数据忽略、fiber 取 session id（含环终止）、颜色换算、色块几何与层叠层级、portal、手机抽屉跟随、hex 字段宽度、路由前缀一致性、宿主半边的各种降级形状 |
-| [docs.test.mjs](docs.test.mjs) | 8 项。文档与静态资产：`docs/` 只放设计记录与图片、全部本地 Markdown 链接与锚点可达（含 HTML img 的 src 属性）、两个 README 互相链接并写明安装、两个 README 的兼容性版本与 `package.json` 的 `dsh.compatibility.dshReleases` 逐字一致、三张 README 截图是尺寸正确的真 PNG、[Demo](../demos/session-color-mark-demo.html) 的静态卫生（单一 inline script、id 唯一、无外部引用） |
+| [plugin-client.test.mjs](plugin-client.test.mjs) | 30 项。Host/Client bundle、两个槽位、缺槽位降级、模拟 Host 路由与跨设备收敛、失败状态、行身份读取、颜色换算、几何与层叠、portal、动画跟随，以及 alpha.3 原生抽屉属性变化在无 transition 事件时触发重新测量。 |
+| [docs.test.mjs](docs.test.mjs) | 9 项。文档目录、双语 Release 锚点、本地链接、双语 README 版本与 manifest 一致性、预发布版本范围、Demo 静态检查和截图格式。 |
 
-浏览器半边的测试用 `node:vm` 按 DSH 客户端加载器的方式执行手写 bundle，`require` 只提供 `react` 与 `react-dom`；宿主半边按路径 import。没有构建步骤，也没有测试依赖需要安装。
+浏览器半边通过 `node:vm` 执行手写 bundle，提供 React / ReactDOM 与 DOM 替身；Host 半边按路径导入。没有构建步骤。
 
 ## 边界
 
-- 单元测试**不是**真实 GUI 验收：不验证像素布局、真实宿主事件、真实 Session/Workspace 数据。
-- 真实浏览器验证用 `/browser-skill`（`bsk`）驱动用户已登录的 Chromium；本仓库不安装 Playwright。
-- 工作边界与不变量见 [AGENTS.md](../AGENTS.md)，设计记录见 [plugin-design.zh.md](../docs/plugin-design.zh.md)。
+- 单元测试不等于真实 GUI 验收，不证明真实像素位置、跨设备网络或真实 Session/Workspace 操作成功。
+- 原生抽屉测试执行组件 effect 与 MutationObserver 回调，确认三个框架属性触发测量和有界跟随；不是浏览器布局测试。
+- 真实 GUI 验证须使用已认证的浏览器；认证不可用时明确记录限制，不绕过鉴权。
+- 工作边界见 [AGENTS.md](../AGENTS.md)，设计记录见 [plugin-design.zh.md](../docs/plugin-design.zh.md)。
