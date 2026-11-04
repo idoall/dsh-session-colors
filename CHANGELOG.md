@@ -8,6 +8,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.16] - 2026-11-04
+
+### Changed
+
+- Record DSH `0.2.2-rc.1` compatibility, retaining 13 previous verified releases;
+  synchronise both READMEs and bilingual Release notes to `0.1.16`.
+- No executable-code, storage-format or load-range changes. Retain the native
+  drawer fix from `0.1.15`; no migration is required.
+- Update DSH channels: `next` is `0.2.2-rc.1`, `alpha` is `0.2.2-alpha.3`, and
+  `latest` is `0.2.1-rc.5` on 2026-11-04. rc.5 is not newly declared verified.
+- Installed schemastery `3.19.0` satisfies `^3.18.2`; the previous prerelease
+  peer mismatch no longer applies to this installation.
+
+### Verification and limits
+
+- Official alpha.3 / rc.1 relevant Host and Client `lib` artifacts are identical,
+  except client-modules' embedded build commit. Available installed artifacts
+  match the registry; primitives are shell-supplied rather than standalone lib
+  files in this installation.
+- All 39 unit tests pass, plus Config/apply/mock in-memory GET using installed
+  schemastery. No real marks are written.
+- Host inspection confirms route/auth contracts; Client inspection confirms
+  active `session-color-chips` in `shell.overlay`, but no available header
+  utilities tree. No fresh real GUI/mobile/cross-device visual acceptance claimed.
+- Existing search-result fallback and silent disk-write fallback limits remain.
+  No other plugin, profile deployment, temporary server or DSH restart involved.
+
 ## [0.1.15] - 2026-11-03
 
 ### Fixed
