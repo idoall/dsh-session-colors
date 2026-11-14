@@ -8,6 +8,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.17] - 2026-11-14
+
+### Added
+
+- Declare the picker panel's own macOS Desktop window region with
+  `data-window-drag-exclude`. DSH `0.2.2-rc.1` narrowed the automatic `no-drag`
+  exclusion from "any matching control or ARIA role" to interactive elements
+  inside a `data-window-drag` row. The panel is a fixed overlay mounted inside
+  the conversation header, which is such a row, and its saturation, hue and alpha
+  surfaces are `role="presentation"` divs outside DSH's control list; a drag on
+  them would move the window instead of picking a colour when the panel is
+  clamped over the header. The exclusion applies only under
+  `html[data-platform=darwin]`; Web and Windows are untouched.
+- Record DSH `0.2.2-rc.3` compatibility, retaining 14 previous verified releases;
+  synchronise both READMEs and bilingual Release notes to `0.1.17`.
+
+### Changed
+
+- Build marker is now `host-routes+animated-rows+drag-exclude`, so a device still
+  running the previous client is identifiable from a DOM dump.
+- No storage-format, Host-half or load-range changes: `engines.dsh` and both DSH
+  peer ranges already admit `0.2.2-rc.3` through `>=0.2.2-alpha.2 <0.3.0`. No
+  migration is required from `0.1.16`.
+- Update DSH channels on 2026-11-14: `next` is `0.2.2-rc.3`, `latest` is
+  `0.2.2-rc.1`, and `alpha` is `0.2.2-alpha.3`.
+
+### Verification and limits
+
+- Compared every package this plugin consumes across `0.2.2-rc.1` and
+  `0.2.2-rc.3`: `dsh-host-webserver` (exact-route `register`), the
+  `dsh-client-connection` Host half (`requestRejection`), locale `register`/`bind`,
+  the module loader's hand-authored bundle contract and `dsh.client` fields, the
+  `conversation.session.header.utilities` and `shell.overlay` slot declarations,
+  and Session-row identity in `dsh-client-ui-workspace` are unchanged. The list's
+  scroll owner moved to the `.listArea` wrapper, which is still an ancestor of the
+  rows, so chip clipping and scroll tracking keep working.
+- Live inspection of the installed rc.3 client: `session-color-mark` active in
+  `conversation.session.header.utilities` (order 40) and `session-color-chips`
+  active in `shell.overlay` (order 100).
+- All 40 unit tests pass, including the new window-region test. No real macOS
+  Desktop drag acceptance, and no fresh real GUI, mobile or cross-device visual
+  acceptance is claimed. No real marks were written, no temporary server was
+  started, and DSH was not restarted.
+- Existing search-result identity fallback and silent disk-write fallback limits
+  remain. No other plugin or profile was touched.
+
 ## [0.1.16] - 2026-11-04
 
 ### Changed

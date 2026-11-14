@@ -341,10 +341,10 @@ test('a DOM dump answers which build and channel state a device has', () => {
 
 test('a device can report which build it runs without a debugger', () => {
   // The old build stored marks in the browser, the one before this painted the
-  // layer inside the shell overlay, and this one follows DSH 0.1.7's animated
-  // rows; telling them apart by eye is what makes "hard-refresh that device" an
-  // actionable answer.
-  assert.match(source, /const BUILD = 'host-routes\+animated-rows'/)
+  // layer inside the shell overlay, the next followed DSH 0.1.7's animated
+  // rows, and this one declares the picker's macOS window region; telling them
+  // apart by eye is what makes "hard-refresh that device" an actionable answer.
+  assert.match(source, /const BUILD = 'host-routes\+animated-rows\+drag-exclude'/)
   assert.match(source, /build=\$\{BUILD\}/)
   assert.match(source, /· \$\{BUILD\}/)
 })
@@ -526,6 +526,29 @@ test('the picker panel names itself in visible text', () => {
   // With the label removed from the trigger, the panel must say what it is.
   assert.match(source, /className: 'dsh-sc-title'/)
   assert.match(source, /dsh-sc-title\{/)
+})
+
+test('the picker panel declares its own macOS Desktop window region', () => {
+  // DSH 0.2.2-rc.1 stops excluding interactive elements outside a
+  // `data-window-drag` row: its selector is
+  // `:where([data-window-drag],[data-window-drag-controls])
+  //  :is(button,a,input,…):where(:not([data-window-drag-exclude] *))`.
+  //
+  // The panel is a fixed overlay rendered inside the conversation header, which
+  // is itself a drag row, and the saturation, hue and alpha pickers are plain
+  // `role="presentation"` divs absent from that control list. Declaring the
+  // panel's own visible box is the documented migration for a custom overlay,
+  // and it is inert outside `html[data-platform=darwin]`.
+  const panel = /className: 'dsh-sc-panel',[\s\S]{0,1200}?'data-window-drag-exclude': ''/.exec(source)
+  assert.ok(panel !== null, 'the picker panel must exclude its own box from window dragging')
+  // It must sit on the panel, not on every focusable child: DSH asks for one
+  // exclusion on the visible owner rather than a per-control sprinkling.
+  assert.equal((source.match(/'data-window-drag-exclude': ''/g) ?? []).length, 1)
+  // The colour surfaces are drag handles; without the exclusion they are the
+  // elements that would move the window instead of picking a colour.
+  assert.match(source, /className: 'dsh-sc-sv'/)
+  assert.match(source, /className: 'dsh-sc-hue'/)
+  assert.match(source, /className: 'dsh-sc-alpha'/)
 })
 
 test('the Host half serves a durable marks route', async () => {

@@ -23,7 +23,7 @@
   <a href="#development">Development</a>
 </p>
 
-> **✅ Supports DSH `0.2.2-rc.1` — the current release candidate (npm `next`).** Compatibility checked against the installed runtime, as well as the previously verified `0.2.2-alpha.3`, `0.2.2-alpha.2`, `0.2.1-rc.4`, `0.2.1-rc.3`, `0.2.1-rc.2`, `0.2.1-alpha.5`, `0.2.1-alpha.4`, `0.2.1-alpha.3`, `0.2.0-rc.2`, `0.2.0-rc.1`, `0.1.7-rc.2`, `0.1.7-rc.1` and `0.1.7-alpha.2`; see [Compatibility](#compatibility).
+> **✅ Supports DSH `0.2.2-rc.3` — the newest release candidate (npm `next`).** Compatibility checked against the installed runtime, as well as the previously verified `0.2.2-rc.1`, `0.2.2-alpha.3`, `0.2.2-alpha.2`, `0.2.1-rc.4`, `0.2.1-rc.3`, `0.2.1-rc.2`, `0.2.1-alpha.5`, `0.2.1-alpha.4`, `0.2.1-alpha.3`, `0.2.0-rc.2`, `0.2.0-rc.1`, `0.1.7-rc.2`, `0.1.7-rc.1` and `0.1.7-alpha.2`; see [Compatibility](#compatibility).
 
 > DSH Session Colors is a DeepSeek Harness community plugin. It does not modify
 > DSH core and does not rewrite any Session or Workspace data: a mark is only
@@ -71,9 +71,9 @@ Requirements:
 
 - DeepSeek Harness with a Web profile
 - Node.js 20 or newer
-- **Verified DSH version: `0.2.2-rc.1`** (the current release candidate),
-  `0.2.2-alpha.3`, `0.2.2-alpha.2`, `0.2.1-rc.4`, `0.2.1-rc.3`, `0.2.1-rc.2`, `0.2.1-alpha.5`, `0.2.1-alpha.4`, `0.2.1-alpha.3`, `0.2.0-rc.2`, `0.2.0-rc.1`,
-  `0.1.7-rc.2`, `0.1.7-rc.1` and `0.1.7-alpha.2` — plugin `0.1.16`
+- **Verified DSH version: `0.2.2-rc.3`** (the newest release candidate),
+  `0.2.2-rc.1`, `0.2.2-alpha.3`, `0.2.2-alpha.2`, `0.2.1-rc.4`, `0.2.1-rc.3`, `0.2.1-rc.2`, `0.2.1-alpha.5`, `0.2.1-alpha.4`, `0.2.1-alpha.3`, `0.2.0-rc.2`, `0.2.0-rc.1`,
+  `0.1.7-rc.2`, `0.1.7-rc.1` and `0.1.7-alpha.2` — plugin `0.1.17`
   (see [Compatibility](#compatibility))
 
 ```sh
@@ -122,14 +122,15 @@ stored as HSVA, so alpha round-trips exactly.
 
 ## Compatibility
 
-Current release: plugin **`0.1.16`** is compatibility-checked against DeepSeek Harness
-**`0.2.2-rc.1`** — the current release candidate (npm `next`) — and retains
-previous verification for **`0.2.2-alpha.3`**, **`0.2.2-alpha.2`**, **`0.2.1-rc.4`**, **`0.2.1-rc.3`**, **`0.2.1-rc.2`**, **`0.2.1-alpha.5`**, **`0.2.1-alpha.4`**, **`0.2.1-alpha.3`**, **`0.2.0-rc.2`**,
+Current release: plugin **`0.1.17`** is compatibility-checked against DeepSeek Harness
+**`0.2.2-rc.3`** — the newest release candidate (npm `next`) — and retains
+previous verification for **`0.2.2-rc.1`**, **`0.2.2-alpha.3`**, **`0.2.2-alpha.2`**, **`0.2.1-rc.4`**, **`0.2.1-rc.3`**, **`0.2.1-rc.2`**, **`0.2.1-alpha.5`**, **`0.2.1-alpha.4`**, **`0.2.1-alpha.3`**, **`0.2.0-rc.2`**,
 **`0.2.0-rc.1`**, **`0.1.7-rc.2`**, **`0.1.7-rc.1`** and **`0.1.7-alpha.2`**.
 
 | Plugin version | Verified DeepSeek Harness | npm status | What it is |
 | --- | --- | --- | --- |
-| **`0.1.16`** | **`0.2.2-rc.1`** (RC), `0.2.2-alpha.3`, `0.2.2-alpha.2`, `0.2.1-rc.4`, `0.2.1-rc.3`, `0.2.1-rc.2`, `0.2.1-alpha.5`, `0.2.1-alpha.4`, `0.2.1-alpha.3`, `0.2.0-rc.2`, `0.2.0-rc.1`, `0.1.7-rc.2`, `0.1.7-rc.1`, `0.1.7-alpha.2` | `latest` | Records DSH `0.2.2-rc.1` compatibility. Executable code and load range unchanged; no migration from `0.1.15`. |
+| **`0.1.17`** | **`0.2.2-rc.3`** (RC), `0.2.2-rc.1`, `0.2.2-alpha.3`, `0.2.2-alpha.2`, `0.2.1-rc.4`, `0.2.1-rc.3`, `0.2.1-rc.2`, `0.2.1-alpha.5`, `0.2.1-alpha.4`, `0.2.1-alpha.3`, `0.2.0-rc.2`, `0.2.0-rc.1`, `0.1.7-rc.2`, `0.1.7-rc.1`, `0.1.7-alpha.2` | `latest` | Records DSH `0.2.2-rc.3` compatibility and declares the picker panel's own macOS Desktop window region, which `0.2.2-rc.1` made necessary for a custom overlay inside a drag row. Host, storage format and load range unchanged; no migration from `0.1.16`. |
+| `0.1.16` | `0.2.2-rc.1` (RC), `0.2.2-alpha.3`, `0.2.2-alpha.2`, `0.2.1-rc.4`, `0.2.1-rc.3`, `0.2.1-rc.2`, `0.2.1-alpha.5`, `0.2.1-alpha.4`, `0.2.1-alpha.3`, `0.2.0-rc.2`, `0.2.0-rc.1`, `0.1.7-rc.2`, `0.1.7-rc.1`, `0.1.7-alpha.2` | published | Records DSH `0.2.2-rc.1` compatibility. Executable code and load range unchanged; no migration from `0.1.15`. |
 | `0.1.15` | `0.2.2-alpha.3` (alpha), `0.2.2-alpha.2`, `0.2.1-rc.4`, `0.2.1-rc.3`, `0.2.1-rc.2`, `0.2.1-alpha.5`, `0.2.1-alpha.4`, `0.2.1-alpha.3`, `0.2.0-rc.2`, `0.2.0-rc.1`, `0.1.7-rc.2`, `0.1.7-rc.1`, `0.1.7-alpha.2` | published | Fixes chip tracking for the alpha.3 native drawer with reduced motion or instant close. Host and load range unchanged; no migration from `0.1.14`. |
 | `0.1.14` | `0.2.2-alpha.2` (alpha), `0.2.1-rc.4`, `0.2.1-rc.3`, `0.2.1-rc.2`, `0.2.1-alpha.5`, `0.2.1-alpha.4`, `0.2.1-alpha.3`, `0.2.0-rc.2`, `0.2.0-rc.1`, `0.1.7-rc.2`, `0.1.7-rc.1`, `0.1.7-alpha.2` | published | Records DSH `0.2.2-alpha.2` compatibility and adds the `0.2.2` prerelease tuple to the declared load range. No executable-code change; upgrading from `0.1.13` needs no migration. |
 | `0.1.13` | `0.2.1-rc.4` (RC), `0.2.1-rc.3`, `0.2.1-rc.2`, `0.2.1-alpha.5`, `0.2.1-alpha.4`, `0.2.1-alpha.3`, `0.2.0-rc.2`, `0.2.0-rc.1`, `0.1.7-rc.2`, `0.1.7-rc.1`, `0.1.7-alpha.2` | published | Records DSH `0.2.1-rc.4` compatibility. No executable-code or load-range change; upgrading from `0.1.12` needs no migration. |
@@ -147,18 +148,18 @@ previous verification for **`0.2.2-alpha.3`**, **`0.2.2-alpha.2`**, **`0.2.1-rc.
 | `0.1.1` | `0.1.6-alpha.2` | published | Documentation only: the packaged README no longer says "not published", and the market screenshots are declared. |
 | `0.1.0` | `0.1.6-alpha.2` | published | First release: Session colour marks, Host-side storage, visible inside a phone's sidebar drawer |
 
-**`0.1.16` supports DSH `0.2.2-rc.1`, the current npm `next` release candidate.** This patch updates compatibility metadata and documentation only. Executable code, storage format and load range are unchanged, retaining the native-drawer tracking fix from `0.1.15`.
+**`0.1.17` supports DSH `0.2.2-rc.3`, the newest npm `next` release candidate.** It adds one attribute to the picker panel: DSH `0.2.2-rc.1` narrowed macOS Desktop's automatic `no-drag` exclusion from “any matching control or ARIA role anywhere” to interactive elements inside a `data-window-drag` row, so a custom overlay that can cover a drag row now has to declare its own window region (`data-window-drag-exclude`). The picker is a fixed panel mounted inside the conversation header, which **is** a `data-window-drag` row, and its saturation/hue/alpha surfaces are plain `role="presentation"` divs that DSH's control list does not name. The exclusion applies only under `html[data-platform=darwin]`, so Web and Windows are untouched, and it is one attribute on the panel's visible box rather than a per-control sprinkling. Storage format, Host half and load range are unchanged; the build marker becomes `host-routes+animated-rows+drag-exclude` so a cached device is still identifiable.
 
-Official `0.2.2-alpha.3` / `0.2.2-rc.1` artifacts were compared: the Host webServer, connection, locale, conversation, layout, workspace, slot renderer, standard Session props and primitives have identical `lib` artifacts; client-modules only changes its embedded build commit. Available installed artifacts match their registry counterparts (primitives are supplied by the shell rather than standalone lib files in this installation). Host inspection confirms route and authentication contracts. Client inspection confirms the active `session-color-chips` occupant in `shell.overlay`, but did not return an available header-utilities tree.
+Artifacts of `0.2.2-rc.1` and `0.2.2-rc.3` were compared for every package this plugin consumes. Unchanged: `dsh-host-webserver` (so `webServer.register({kind:'exact',…})` and its handler contract), `dsh-client-connection`'s Host half (`connection.requestRejection`), the locale service API (`register(ns, dicts)` / `bind(ns)`), the module loader's hand-authored bundle contract (`window.__ModuleLoader__.load({id, factory})` plus the same `dsh.client` manifest fields), the `conversation.session.header.utilities` slot (kind `list`, scope `session`, standard `sessionId` prop), the `shell.overlay` slot (frame-wide list) and Session-row identity in `dsh-client-ui-workspace` (`data-row-key="session:<id>"`, `role="treeitem"`, `aria-selected`). The session list's scroll owner is now the `.listArea` wrapper (`overflow: hidden auto`) rather than the list itself; it is still an ancestor of the rows, so the chip clip and the scroll listener keep working. `react-dom` is still a shell static module: the bundle requires exactly `react` and `react-dom`. The single behavioural change for this plugin is the window-region contract above, and it is the reason for the attribute.
 
-All 39 unit tests pass. An additional check using installed schemastery `3.19.0` exercised Config, apply and a mocked in-memory GET route without writing real marks. This stable version satisfies `^3.18.2`, so the previous prerelease peer mismatch no longer applies to this installation. The existing DSH engine and both DSH peer ranges admit rc.1. This release **does not claim real GUI, mobile or cross-device visual acceptance**: registration is not visual verification. No temporary server was started and DSH was not restarted.
+Live inspection of the installed `0.2.2-rc.3` client confirms both surfaces are active: `session-color-mark` in `conversation.session.header.utilities` (order 40) and `session-color-chips` in `shell.overlay` (order 100). All 40 unit tests pass, including the new window-region test. This release **does not claim real macOS Desktop drag acceptance, nor real GUI, mobile or cross-device visual acceptance**: a registration is not visual verification, and the drag region only exists in the Desktop shell. No temporary server was started and DSH was not restarted.
 
-Registry check on 2026-11-04: DSH `next` is `0.2.2-rc.1`, `alpha` is `0.2.2-alpha.3`, and `latest` is `0.2.1-rc.5`. `0.2.1-rc.5` is not on this plugin's verified list.
+Registry check on 2026-11-14: DSH `next` is `0.2.2-rc.3`, `latest` is `0.2.2-rc.1`, and `alpha` is `0.2.2-alpha.3`.
 
 `0.1.9` moved that range to top-level `engines.dsh`, the field DSH `0.2.1-alpha.4`
 made authoritative — it decides alone when present, and the marketplace reads the
 same field. That relocation still stands and is unchanged here.
-**Upgrading from `0.1.15` needs no migration.** On an older DSH — including
+**Upgrading from `0.1.16` needs no migration.** On an older DSH — including
 `0.1.6-alpha.2` — keep plugin **`0.1.2`**. Newer DSH releases are not
 auto-declared compatible.
 
@@ -184,7 +185,7 @@ auto-declared compatible.
   range is not satisfied, so a correct range is load-bearing rather than
   cosmetic. Since `0.2.1-alpha.4`, the boot precheck gives top-level
   `engines.dsh` priority over peer ranges (which is why `0.1.9` moved the range
-  there). The declared DSH range accepts `0.2.2-rc.1`; no range widening is needed.
+  there). The declared DSH range accepts `0.2.2-rc.3`; no range widening is needed.
 - DSH 0.1.7-rc.2 added a real Session-row seat,
   `sidebar.session.row.leading` — a 16px cell before the title. The chip
   deliberately **stays on its own click-through layer**: that seat shares its cell
