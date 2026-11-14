@@ -48,12 +48,13 @@ window.__ModuleLoader__.load({
     const NS = 'sessionColor'
     /**
      * Build marker. Stored marks are Host-side as of the `host-routes` build,
-     * the chip layer paints just above the sidebar as of `drawer-aware`, and as
-     * of `animated-rows` it follows the Web-Animations row gliding DSH 0.1.7
-     * introduced. A device that still shows an older marker is running a cached
-     * client and must be hard-refreshed.
+     * the chip layer paints just above the sidebar as of `drawer-aware`, as of
+     * `animated-rows` it follows the Web-Animations row gliding DSH 0.1.7
+     * introduced, and as of `drag-exclude` the picker declares its own macOS
+     * Desktop window region (DSH 0.2.2-rc.1). A device that still shows an older
+     * marker is running a cached client and must be hard-refreshed.
      */
-    const BUILD = 'host-routes+animated-rows'
+    const BUILD = 'host-routes+animated-rows+drag-exclude'
 
     /**
      * This plugin's own Host route. Kept in sync with the Host half's
@@ -896,6 +897,18 @@ window.__ModuleLoader__.load({
           ref: panelRef,
           role: 'dialog',
           'aria-label': t('panelTitle'),
+          // DSH 0.2.2-rc.1 narrowed macOS Desktop's automatic no-drag exclusion
+          // from "any matching control or ARIA role" to interactive elements
+          // inside a `data-window-drag` row. This panel is a fixed overlay
+          // mounted inside the conversation header, which IS such a row, and
+          // the saturation, hue and alpha surfaces are plain `role="presentation"`
+          // divs that DSH's control list does not name. On a viewport short
+          // enough to clamp the panel up over the header, a drag on them would
+          // move the window instead of picking a colour. Declaring the panel's
+          // own visible box as an exclusion is DSH's documented migration for a
+          // custom overlay, and it only ever applies under
+          // `html[data-platform=darwin]`, so Web and Windows are untouched.
+          'data-window-drag-exclude': '',
           style: position === null
             ? { left: '0px', top: '0px', visibility: 'hidden' }
             : { left: `${position.left}px`, top: `${position.top}px` },
