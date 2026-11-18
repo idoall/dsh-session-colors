@@ -8,6 +8,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.18] - 2026-11-18
+
+### Changed
+
+- Record DSH `0.2.2-rc.4` compatibility, retaining 15 previous verified releases;
+  synchronise both READMEs and bilingual Release notes to `0.1.18`.
+- No executable-code, storage-format or load-range changes. The build marker
+  stays `host-routes+animated-rows+drag-exclude`; no migration is required from
+  `0.1.17`.
+- Update DSH channels on 2026-11-18: `next` is `0.2.2-rc.4`, `latest` is
+  `0.2.2-rc.1`, and `alpha` is `0.2.2-alpha.3`.
+
+### Verification and limits
+
+- rc.4's only upgrade-guide entry moves the DeepSeek streamed content refusal
+  code from `MALFORMED_RESPONSE` to `CONTENT_REFUSED`. It applies to code that
+  classifies LLM error finishes or `turn/end` errors; this plugin handles no LLM
+  errors and references neither code.
+- Every consumed package is unchanged between rc.3 and rc.4: `dsh-client-ui-layout`,
+  `dsh-client-ui-conversation`, `dsh-client-ui-workspace`, `dsh-client-ui-sidebar`,
+  `dsh-host-webserver`, the `dsh-client-connection` Host half, `dsh-base` and
+  `dsh-web` have byte-identical `lib` artifacts. `dsh-client-modules/lib/index.js`
+  and `dsh-client-ui-sidebar/lib/client.js` differ only in their embedded build
+  identity (`rc.3-6b729fe` → `rc.4-70005a5`). The web shell's `dist` assets are
+  byte-identical, so the macOS window-drag CSS stays as `0.1.17` adapted it.
+- Live inspection of the installed rc.4 client: `session-color-mark` active in
+  `conversation.session.header.utilities` (order 40) and `session-color-chips`
+  active in `shell.overlay` (order 100).
+- All 40 unit tests pass. `engines.dsh` and both DSH peer ranges already admit
+  rc.4 through `>=0.2.2-alpha.2 <0.3.0`; no widening was needed.
+- No real GUI, mobile or cross-device visual acceptance is claimed. No real marks
+  were written, no temporary server was started, and DSH was not restarted. No
+  other plugin or profile was touched.
+
 ## [0.1.17] - 2026-11-14
 
 ### Added
