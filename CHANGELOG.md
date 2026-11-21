@@ -8,6 +8,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.19] - 2026-11-21
+
+### Changed
+
+- Record DSH `0.2.2-rc.5` compatibility, retaining 16 previous verified releases;
+  synchronise both READMEs and bilingual Release notes to `0.1.19`.
+- No executable-code, storage-format or load-range changes. The build marker
+  stays `host-routes+animated-rows+drag-exclude`; no migration is required from
+  `0.1.18`.
+- Update DSH channels on 2026-11-21: `latest` and `next` are both `0.2.2-rc.5`,
+  and `alpha` is `0.2.2-alpha.3`. This is the first verified release candidate
+  that is also the default install target.
+
+### Verification and limits
+
+- rc.5's only upgrade-guide entry removes the fixed search provider from the
+  shipped composition, so DeepSeek model routes use legacy Messages search. It
+  changes `dsh-web`'s provider selection and the Web search settings menu; this
+  plugin registers no search or fetch provider, never touches `ctx.web`, and
+  injects only `webServer` and `connection` (both byte-identical to rc.4).
+- Byte-identical `lib` artifacts between rc.4 and rc.5: `dsh-client-ui-layout`,
+  `dsh-client-ui-conversation`, `dsh-client-ui-workspace`, `dsh-client-ui-sidebar`
+  (including Session-row markup), `dsh-base`, `dsh-client-locale`,
+  `dsh-host-webserver` and `dsh-client-connection`. `dsh-client-modules/lib/index.js`
+  and `dsh-client-ui-sidebar/lib/client.js` differ only in embedded build identity
+  (`rc.4-70005a5` → `rc.5-3f85d88`). The web shell's `dist` assets are
+  byte-identical, so the macOS window-drag CSS stays as `0.1.17` adapted it.
+- Live inspection of the installed rc.5 client: `session-color-mark` active in
+  `conversation.session.header.utilities` and `session-color-chips` active in
+  `shell.overlay` (order 100).
+- All 40 unit tests pass. `engines.dsh` and both DSH peer ranges already admit
+  rc.5 through `>=0.2.2-alpha.2 <0.3.0`, and still reject `0.2.3-alpha.1` and
+  `0.3.0`; no widening was needed.
+- No real GUI, mobile or cross-device visual acceptance is claimed. No real marks
+  were written, no temporary server was started, and DSH was not restarted. No
+  other plugin or profile was touched.
+
 ## [0.1.18] - 2026-11-18
 
 ### Changed
