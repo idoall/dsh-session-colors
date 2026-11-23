@@ -8,6 +8,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.20] - 2026-11-23
+
+### Fixed
+
+- Host-route authentication on DSH `0.2.3`. That release moved authentication
+  into the route declaration (`webServer.register({ auth })`, defaulting to
+  `required`) and removed `connection.requestRejection`. The previous Host half
+  called the removed method unconditionally; the throw landed in the "a fence
+  that cannot answer must not become an open door" catch, which answered `403` to
+  every authenticated request, so sidebar chips stopped appearing and the picker
+  could neither read nor save a colour. Both routes now declare
+  `auth: 'required'`, the per-request fence is used only where that method still
+  exists, and a request arriving without an admitted Peer is refused with `401`.
+
+### Changed
+
+- Record DSH `0.2.3-alpha.2` compatibility, retaining 17 previous verified
+  releases; synchronise both READMEs and bilingual Release notes to `0.1.20`.
+- Add `>=0.2.3-alpha.2 <0.3.0` to `engines.dsh` and both DSH peer ranges, so the
+  declared load range changes. Storage format, route paths and data format do not;
+  no migration from `0.1.19` is needed.
+- Document DSH `0.2.3-alpha.1`'s Node.js floor (`24.22.3+` in the 24.x line, or
+  `26.13.1+`). The package's own `engines.node` stays `>=20`, because older DSH
+  releases still run there.
+- Correct both READMEs' description of the load range: DSH evaluates it with
+  `includePrerelease: true`, so prereleases participate and the range is wider
+  than the verified list. The stricter rule in `tests/docs.test.mjs` is the
+  repository's own self-check, not DSH's.
+- Update DSH channels on 2026-11-23: `alpha` is `0.2.3-alpha.2`, while `latest`
+  and `next` remain `0.2.2-rc.5`.
+
+### Verification and limits
+
+- Client-side contracts are unchanged between `0.2.2-rc.5` and `0.2.3-alpha.2`:
+  both slots still declared, Session rows still `data-row-key="session:<id>"` +
+  `role="treeitem"` + `aria-selected`, list still scrolls inside `.listArea`, the
+  drawer attributes are still watched, the hand-authored bundle contract and
+  locale API are untouched, `react-dom` is still a shell static module. The shell
+  `dist` was rebuilt, but the macOS drag rules are identical and still include
+  `[data-window-drag-exclude]`.
+- Host side: `webServer.register` still returns a disposer with the same
+  exact-route shape plus `auth`; `connection.requestRejection` is gone.
+- All 43 unit tests pass, including three new ones covering both authentication
+  shapes (platform: 200 with Peer, 401 without; connection: 403 on refuse/throw,
+  200 on admit).
+- No real GUI, mobile or cross-device visual acceptance is claimed, and the fix
+  was not exercised on a live `0.2.3` profile (that needs an install and a
+  restart). No real marks were written, no temporary server was started, DSH was
+  not restarted, and no other plugin or profile was touched.
+
 ## [0.1.19] - 2026-11-21
 
 ### Changed

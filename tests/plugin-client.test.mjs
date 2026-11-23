@@ -578,8 +578,78 @@ test('the Host half serves a durable marks route', async () => {
   assert.equal(typeof routes[0].handler, 'function')
 })
 
-test('the Host half degrades instead of taking the boot down', async () => {
+/**
+ * One captured Host route in the shape a given DSH release exposes. `connection`
+ * is what that release offers: the pre-0.2.3 service with
+ * `requestRejection`, or the 0.2.3+ service without it.
+ */
+async function hostRoute(connection) {
   const mod = await import(resolve(root, 'src/index.js'))
+  const routes = []
+  mod.apply({
+    inject: (_deps, body) => body({
+      webServer: { register: (route) => { routes.push(route); return () => {} } },
+      connection,
+    }),
+    effect: (fn) => fn(),
+  }, { dataDir: undefined })
+  return routes[0]
+}
+
+/** A response stub that records what the handler wrote. */
+function responseStub() {
+  return {
+    statusCode: 200,
+    headers: {},
+    body: '',
+    setHeader(name, value) { this.headers[name] = value },
+    end(chunk) { if (chunk !== undefined) this.body += String(chunk) },
+  }
+}
+
+test('a release that fences routes itself needs no per-request call', async () => {
+  // DSH 0.2.3 removed `connection.requestRejection`: authentication is declared
+  // on the route instead and the platform hands the admitted Peer to the
+  // handler. The previous code called the removed method, threw, and its catch
+  // answered 403 to every authenticated request, so marks stopped loading and
+  // saving on a release that was otherwise compatible.
+  const route = await hostRoute({})
+  assert.equal(route.auth, 'required', 'the route declares required authentication')
+  const ok = responseStub()
+  await route.handler({ method: 'GET', headers: {} }, ok, { id: 'peer-1' })
+  assert.equal(ok.statusCode, 200, 'an admitted request is served, not refused')
+  assert.match(ok.body, /"marks"/)
+})
+
+test('a required-auth route without a Peer is refused, never served', async () => {
+  const route = await hostRoute({})
+  const res = responseStub()
+  await route.handler({ method: 'GET', headers: {} }, res, undefined)
+  assert.equal(res.statusCode, 401, 'no Peer means the platform did not admit the request')
+  assert.equal(res.body, 'unauthorized')
+})
+
+test('a release that exposes the connection fence still has it applied', async () => {
+  // Releases up to 0.2.2 pass no Peer, so the handler keeps asking the
+  // connection service; the declared range still includes them.
+  const rejecting = await hostRoute({ requestRejection: () => 403 })
+  const denied = responseStub()
+  await rejecting.handler({ method: 'GET', headers: {} }, denied, undefined)
+  assert.equal(denied.statusCode, 403)
+  assert.equal(denied.body, 'forbidden')
+
+  const throwing = await hostRoute({ requestRejection: () => { throw new Error('fence down') } })
+  const closed = responseStub()
+  await throwing.handler({ method: 'GET', headers: {} }, closed, undefined)
+  assert.equal(closed.statusCode, 403, 'a fence that cannot answer must not become an open door')
+
+  const admitting = await hostRoute({ requestRejection: () => undefined })
+  const served = responseStub()
+  await admitting.handler({ method: 'GET', headers: {} }, served, undefined)
+  assert.equal(served.statusCode, 200)
+})
+
+test('the Host half degrades instead of taking the boot down', async () => {  const mod = await import(resolve(root, 'src/index.js'))
   const hostile = [
     undefined,
     null,

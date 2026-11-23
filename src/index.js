@@ -161,6 +161,34 @@ export function createMarksFile(dataDir) {
 }
 
 /**
+ * The authentication fence a route handler must apply, or `undefined` when the
+ * platform applies it.
+ *
+ * Two shapes exist across the declared DSH range. Up to `0.2.2`, a plugin route
+ * had to ask the `connection` service per request through
+ * `connection.requestRejection`, and that call returned `401`, `403` or
+ * `undefined`. From `0.2.3`, authentication lives in the route declaration
+ * (`webServer.register({ auth })`, defaulting to `required`), the platform
+ * applies the Host/Origin fence and the registered authentication before the
+ * handler runs, and hands the admitted Peer to the handler; the method was
+ * removed. Calling it blindly there threw, and the pre-`0.2.3` catch turned that
+ * into a 403 for every authenticated request — colour marks stopped loading and
+ * saving on a release that was itself perfectly compatible.
+ * @param connection - the host `connection` service, when the build exposes one.
+ * @returns a request-to-rejection function, or `undefined` for platform fencing.
+ */
+function fenceOf(connection) {
+  try {
+    if (connection === undefined || connection === null) return undefined
+    return typeof connection.requestRejection === 'function'
+      ? (req) => connection.requestRejection(req)
+      : undefined
+  } catch {
+    return undefined
+  }
+}
+
+/**
  * Register the durable store and its routes when the web server is composed.
  * @param ctx - Host context.
  * @param config - plugin config; `dataDir` enables persistence.
@@ -175,23 +203,41 @@ export function apply(ctx, config = {}) {
         const connection = hostCtx === undefined || hostCtx === null ? undefined : hostCtx.connection
         if (webServer === undefined || webServer === null || typeof webServer.register !== 'function') return
 
+        const fence = fenceOf(connection)
+
         const route = (path, handler) => {
           const register = () => webServer.register({
             kind: 'exact',
             path: `${ROUTE_PREFIX}${path}`,
-            handler: async (req, res) => {
-              // Same fence the shipped authenticated routes use.
-              try {
-                const rejection = connection === undefined || connection === null ? undefined : connection.requestRejection(req)
-                if (rejection !== undefined) {
-                  res.statusCode = rejection
-                  res.end(rejection === 401 ? 'unauthorized' : 'forbidden')
-                  return
+            // DSH 0.2.3 moved authentication into the route declaration: this
+            // field is honoured there (and defaults to `required` anyway), so the
+            // platform applies the Host/Origin fence and the registered
+            // authentication before the handler runs. Older releases ignore the
+            // unknown field and expose `connection.requestRejection` instead,
+            // which `fence` above still calls. Declaring it explicitly keeps the
+            // route authenticated on a release that changes the default.
+            auth: 'required',
+            handler: async (req, res, peer) => {
+              let rejection
+              if (fence !== undefined) {
+                // Releases up to 0.2.2: ask the connection service itself.
+                try {
+                  rejection = fence(req)
+                } catch {
+                  // A fence that cannot answer must not turn into an open door.
+                  rejection = 403
                 }
-              } catch {
-                // A fence that cannot answer must not turn into an open door.
-                res.statusCode = 403
-                res.end('forbidden')
+              } else if (peer === undefined) {
+                // Releases from 0.2.3 fence the route before this handler and
+                // pass the admitted Peer as the third argument. A required-auth
+                // route that arrived without one was never authenticated, so
+                // refusing here is the difference between "closed" and
+                // "open to whoever can reach the port".
+                rejection = 401
+              }
+              if (rejection !== undefined) {
+                res.statusCode = rejection
+                res.end(rejection === 401 ? 'unauthorized' : 'forbidden')
                 return
               }
               try {
