@@ -1,17 +1,27 @@
 /**
  * Session-colour plugin, Host half.
  *
- * This half owns the durable store for colour marks and the two HTTP routes the
- * browser half talks to.
+ * This half owns the durable store for colour marks and saved colours, plus the
+ * HTTP routes the browser half talks to.
  *
- * Why routes and a file instead of the `settings` service: DSH only host-backs
+ * Why routes and files instead of the `settings` service: DSH only host-backs
  * user settings for loopback pages (`persistence = $host.isLoopback ? "host" :
  * "memory"`), so a page opened over the LAN or a tunnel gets a permanently
  * `unavailable` settings scope. Its own routes are not subject to that rule,
  * which is what makes a mark set on one device visible on another.
  *
- * A mark is only a colour keyed by Session id. This half never touches Session
- * identity, history, membership, ordering or archive records.
+ * Two documents, deliberately separate:
+ *
+ * - `session-colors.json` holds marks (Session id → colour). It is written
+ *   whole on every mark change, exactly as before.
+ * - `palette.json` holds the saved-colour palette. It lives in its own file so a
+ *   plugin downgrade, which rewrites the marks document without knowing about
+ *   the palette, cannot erase it. The first build that reads a palette document
+ *   imports the `palette` field an older marks document may still carry, once.
+ *
+ * A mark is only a colour keyed by Session id; a palette entry is only a colour.
+ * This half never touches Session identity, history, membership, ordering or
+ * archive records.
  *
  * Everything is defensive: a Host half that throws can take the Host's boot
  * down with it, so every step degrades to "no durable store" instead.
@@ -40,7 +50,7 @@ const ColorSchema = z.object({
   a: z.number().min(0).max(1),
 })
 
-/** The durable document: Session id → colour. `dict` because ids are dynamic. */
+/** The durable marks document: Session id → colour. `dict` because ids are dynamic. */
 export const MarksSchema = z.object({
   marks: z.dict(ColorSchema).default({}),
 })
@@ -113,6 +123,27 @@ function cleanMarks(input) {
   return marks
 }
 
+/** Keep only well-formed colours from a palette; duplicates and extras are dropped. */
+function cleanPalette(input) {
+  const palette = []
+  if (!Array.isArray(input)) return palette
+  for (const color of input) {
+    if (color === null || typeof color !== 'object') continue
+    if (typeof color.h !== 'number' || typeof color.s !== 'number' || typeof color.v !== 'number' || typeof color.a !== 'number') continue
+    const next = { h: color.h, s: color.s, v: color.v, a: color.a }
+    if (palette.some((item) => item.h === next.h && item.s === next.s && item.v === next.v && item.a === next.a)) continue
+    palette.push(next)
+  }
+  // Keep the most recent entries: the browser half appends and drops the oldest,
+  // so both sides must agree on which end survives.
+  return palette.length > 32 ? palette.slice(-32) : palette
+}
+
+/** One colour the routes can accept, or undefined when the value is not one. */
+function cleanColor(input) {
+  return cleanMarks({ one: input }).one
+}
+
 /**
  * The durable marks store: one JSON document under the profile's data
  * directory, written atomically. Without a usable `dataDir` it still serves the
@@ -161,6 +192,117 @@ export function createMarksFile(dataDir) {
 }
 
 /**
+ * The durable saved-colour palette: its own JSON document, written atomically.
+ *
+ * The separate file is what makes a downgrade safe: an older build rewrites
+ * `session-colors.json` with marks only, so a palette stored there would be
+ * erased by the next mark change. A palette stored here is never touched by an
+ * older build. The first run imports the `palette` field an older marks document
+ * may still carry, then leaves that document alone.
+ * @param dataDir - absolute profile-owned directory, or undefined.
+ */
+export function createPaletteFile(dataDir) {
+  const dir = typeof dataDir === 'string' && isAbsolute(dataDir) ? dataDir : null
+  const file = dir === null ? null : join(dir, 'palette.json')
+  const legacy = dir === null ? null : join(dir, 'session-colors.json')
+  let palette = []
+  let error = ''
+  let readable = true
+
+  /**
+   * Read the palette document, telling "no document yet" apart from "cannot
+   * read one": only the former may import the legacy field, or a corrupt or
+   * unreadable file would resurrect colours the user already removed.
+   */
+  const readStored = () => {
+    if (file === null) return { status: 'session' }
+    try {
+      const parsed = JSON.parse(readFileSync(file, 'utf8'))
+      return { status: 'ok', palette: cleanPalette(Array.isArray(parsed) ? parsed : parsed?.palette) }
+    } catch (reason) {
+      if (reason?.code === 'ENOENT') return { status: 'missing' }
+      return { status: 'error', error: String(reason) }
+    }
+  }
+
+  const persist = () => {
+    if (file === null) return false
+    try {
+      mkdirSync(dir, { recursive: true })
+      const temporary = `${file}.tmp`
+      writeFileSync(temporary, `${JSON.stringify({ version: 1, palette }, null, 2)}\n`, 'utf8')
+      renameSync(temporary, file)
+      error = ''
+      readable = true
+      return true
+    } catch (reason) {
+      error = String(reason)
+      return false
+    }
+  }
+
+  const stored = readStored()
+  if (stored.status === 'ok') {
+    palette = stored.palette
+  } else if (stored.status === 'error') {
+    readable = false
+    error = stored.error
+  } else if (stored.status === 'missing') {
+    // One-time import from the marks document an older build also held the
+    // palette in. It never runs when a palette document exists but cannot be
+    // read, so a damaged file is reported rather than overwritten.
+    try {
+      const parsed = JSON.parse(readFileSync(legacy, 'utf8'))
+      palette = cleanPalette(parsed?.palette)
+    } catch (reason) {
+      if (reason?.code !== 'ENOENT') {
+        readable = false
+        error = String(reason)
+      }
+    }
+    if (palette.length > 0) persist()
+  }
+
+  const same = (left, right) => left.h === right.h && left.s === right.s && left.v === right.v && left.a === right.a
+
+  return {
+    /** The palette, in add order. */
+    get: () => [...palette],
+    /**
+     * Append one colour, ignoring a duplicate.
+     * @param color - an HSVA colour the route already validated.
+     */
+    add(color) {
+      if (palette.some((item) => same(item, color))) return { palette: [...palette], persisted: error === '' }
+      palette = cleanPalette([...palette, color])
+      return { palette: [...palette], persisted: persist() }
+    },
+    /**
+     * Remove one colour by value.
+     * @param color - the HSVA colour to drop.
+     */
+    remove(color) {
+      palette = cleanPalette(palette.filter((item) => !same(item, color)))
+      return { palette: [...palette], persisted: persist() }
+    },
+    /** Drop every saved colour. Only an explicit clear request reaches this. */
+    clear() {
+      palette = []
+      return { palette: [], persisted: persist() }
+    },
+    /** What the palette routes report about durability. */
+    get status() {
+      return {
+        persistence: file === null ? 'session' : 'file',
+        writable: error === '',
+        readable,
+        error,
+      }
+    },
+  }
+}
+
+/**
  * The authentication fence a route handler must apply, or `undefined` when the
  * platform applies it.
  *
@@ -189,7 +331,7 @@ function fenceOf(connection) {
 }
 
 /**
- * Register the durable store and its routes when the web server is composed.
+ * Register the durable stores and their routes when the web server is composed.
  * @param ctx - Host context.
  * @param config - plugin config; `dataDir` enables persistence.
  */
@@ -197,6 +339,7 @@ export function apply(ctx, config = {}) {
   try {
     if (ctx === undefined || ctx === null || typeof ctx.inject !== 'function') return
     const store = createMarksFile(config === null || config === undefined ? undefined : config.dataDir)
+    const paletteStore = createPaletteFile(config === null || config === undefined ? undefined : config.dataDir)
     ctx.inject(['webServer', 'connection'], (hostCtx) => {
       try {
         const webServer = hostCtx === undefined || hostCtx === null ? undefined : hostCtx.webServer
@@ -252,7 +395,9 @@ export function apply(ctx, config = {}) {
 
         route('/marks', async (req, res) => {
           if (req.method === 'GET') {
-            sendJson(res, 200, { marks: store.get(), storage: store.status })
+            // The palette rides along so a page still gets both stores from one
+            // request; older browser halves read this field too.
+            sendJson(res, 200, { marks: store.get(), palette: paletteStore.get(), paletteStorage: paletteStore.status, storage: store.status })
             return
           }
           if (req.method !== 'POST') {
@@ -273,12 +418,56 @@ export function apply(ctx, config = {}) {
             return
           }
           const clearing = body.color === null || body.color === undefined
-          const color = clearing ? undefined : cleanMarks({ one: body.color }).one
+          const color = clearing ? undefined : cleanColor(body.color)
           if (!clearing && color === undefined) {
             sendJson(res, 400, { error: 'color must be {h,s,v,a}' })
             return
           }
-          sendJson(res, 200, { marks: store.set(sessionId, color), storage: store.status })
+          sendJson(res, 200, { marks: store.set(sessionId, color), palette: paletteStore.get(), paletteStorage: paletteStore.status, storage: store.status })
+        })
+
+        route('/palette', async (req, res) => {
+          if (req.method === 'GET') {
+            sendJson(res, 200, { palette: paletteStore.get(), storage: paletteStore.status })
+            return
+          }
+          if (req.method !== 'POST') {
+            res.statusCode = 405
+            res.setHeader('allow', 'GET, POST')
+            res.end()
+            return
+          }
+          if (!sameOriginRequest(req)) {
+            res.statusCode = 403
+            res.end('forbidden')
+            return
+          }
+          const body = await readJson(req)
+          // Exactly one action per request. A missing action must never mean
+          // "empty table", and a request carrying two actions must not silently
+          // execute whichever branch happens to come first.
+          const actions = ['add', 'remove', 'clear'].filter((key) => Object.hasOwn(body, key))
+          if (actions.length !== 1) {
+            sendJson(res, 400, { error: 'expected exactly one of add, remove, clear' })
+            return
+          }
+          const action = actions[0]
+          let result
+          if (action === 'clear') {
+            if (body.clear !== true) {
+              sendJson(res, 400, { error: 'clear must be true' })
+              return
+            }
+            result = paletteStore.clear()
+          } else {
+            const color = cleanColor(body[action])
+            if (color === undefined) {
+              sendJson(res, 400, { error: `${action} must be {h,s,v,a}` })
+              return
+            }
+            result = action === 'add' ? paletteStore.add(color) : paletteStore.remove(color)
+          }
+          sendJson(res, 200, { palette: result.palette, storage: paletteStore.status })
         })
       } catch {
         // No routes: the browser half keeps marks for the life of the page.

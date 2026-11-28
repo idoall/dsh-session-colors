@@ -6,7 +6,9 @@
  *
  * - `conversation.session.header.utilities` carries the picker button and its
  *   system-style panel (saturation/value field, hue, alpha, hex, RGBA, theme
- *   swatches, saved colours).
+ *   swatches, saved colours). Saved colours live in their own Host document,
+ *   so they survive reloads and restarts and are edited one at a time: adding
+ *   or removing one never rewrites another device's list.
  * - `shell.overlay` carries the chip layer: a frame-wide, fixed, click-through
  *   surface on which one small colour chip is painted per marked Session row.
  *   The surface is registered there but rendered through a portal on
@@ -54,7 +56,7 @@ window.__ModuleLoader__.load({
      * Desktop window region (DSH 0.2.2-rc.1). A device that still shows an older
      * marker is running a cached client and must be hard-refreshed.
      */
-    const BUILD = 'host-routes+animated-rows+drag-exclude'
+    const BUILD = 'host-routes+animated-rows+drag-exclude+palette'
 
     /**
      * This plugin's own Host route. Kept in sync with the Host half's
@@ -62,6 +64,7 @@ window.__ModuleLoader__.load({
      * `settings` service for loopback pages.
      */
     const MARKS_ROUTE = '/plugins/dsh-session-colors/marks'
+    const PALETTE_ROUTE = '/plugins/dsh-session-colors/palette'
 
     /** How often an open page re-reads marks another device may have changed. */
     const PEER_POLL_MS = 20000
@@ -98,6 +101,7 @@ window.__ModuleLoader__.load({
       hue: '色相',
       eyedrop: '吸取屏幕颜色',
       addMine: '把当前颜色加入我的颜色',
+      removeMine: '删除这个颜色',
       custom: '自定义颜色',
       layer: '会话颜色标记',
       panelTitle: '选择会话颜色',
@@ -119,6 +123,7 @@ window.__ModuleLoader__.load({
       hue: 'Hue',
       eyedrop: 'Pick a colour from the screen',
       addMine: 'Save the current colour',
+      removeMine: 'Remove this colour',
       custom: 'Custom colour',
       layer: 'Session colour marks',
       panelTitle: 'Choose a Session colour',
@@ -212,8 +217,16 @@ window.__ModuleLoader__.load({
       return colors
     }
 
+    /** Keep only well-formed saved colours. */
+    function readPalette(palette) {
+      const colors = []
+      if (!Array.isArray(palette)) return colors
+      for (const color of palette) if (isColor(color)) colors.push(color)
+      return colors
+    }
+
     /**
-     * Marks store backed by this plugin's own Host route.
+     * Marks and palette store backed by this plugin's own Host routes.
      *
      * Not `settingsScope`: DSH host-backs user settings only for loopback pages
      * (`persistence = $host.isLoopback ? "host" : "memory"`), so a page opened
@@ -223,9 +236,14 @@ window.__ModuleLoader__.load({
      *
      * Writes are optimistic — the UI updates at once — and the Host's answer
      * replaces the view, so a failed write is visible rather than silent.
+     * `revision` keeps a slow read or an older write from replacing a newer
+     * local view: only the answer to the latest change is adopted.
      */
     function createStore() {
-      let snapshot = { colors: {}, ready: false, status: 'loading', writable: true, error: '' }
+      let snapshot = { colors: {}, palette: [], paletteWritable: true, ready: false, status: 'loading', writable: true, error: '' }
+      let revision = 0
+      let committed = 0
+      let pendingWrites = 0
       const listeners = new Set()
 
       const publish = () => {
@@ -242,11 +260,14 @@ window.__ModuleLoader__.load({
         status: snapshot.status,
         writable: snapshot.writable,
         marks: Object.keys(snapshot.colors).length,
+        palette: snapshot.palette.length,
         error: snapshot.error,
       })
 
-      /** Adopt whatever the Host serves. */
+      /** Adopt whatever the Host serves, unless a newer local change owns the view. */
       const load = () => {
+        const seen = revision
+        const since = committed
         let request
         try {
           request = fetch(MARKS_ROUTE, { credentials: 'same-origin', headers: { accept: 'application/json' } })
@@ -262,8 +283,15 @@ window.__ModuleLoader__.load({
           .then(async (response) => {
             if (!response.ok) throw new Error(`marks route answered ${response.status}`)
             const payload = await response.json()
+            // A write, or a newer read, may have landed while this one was in
+            // flight; that view is newer than this answer.
+            if (seen !== revision || committed !== since || pendingWrites > 0) return
             snapshot = {
               colors: readMarks(payload === null || payload === undefined ? undefined : payload.marks),
+              palette: readPalette(payload === null || payload === undefined ? undefined : payload.palette),
+              paletteWritable: payload === null || payload === undefined || payload.paletteStorage === undefined
+                ? true
+                : payload.paletteStorage.writable !== false,
               ready: true,
               status: 'ready',
               writable: true,
@@ -272,12 +300,16 @@ window.__ModuleLoader__.load({
             publish()
           })
           .catch((error) => {
+            if (seen !== revision || committed !== since || pendingWrites > 0) return
             snapshot = { ...snapshot, ready: false, status: 'unreachable', error: String(error) }
             publish()
           })
       }
 
       const write = (sessionId, color) => {
+        revision += 1
+        pendingWrites += 1
+        const mine = revision
         const colors = { ...snapshot.colors }
         if (color === undefined) delete colors[sessionId]
         else colors[sessionId] = color
@@ -292,6 +324,7 @@ window.__ModuleLoader__.load({
             body: JSON.stringify({ sessionId, color: color === undefined ? null : color }),
           })
         } catch (error) {
+          pendingWrites = Math.max(0, pendingWrites - 1)
           snapshot = { ...snapshot, error: String(error), status: 'write-failed' }
           publish()
           return
@@ -300,8 +333,15 @@ window.__ModuleLoader__.load({
           .then(async (response) => {
             if (!response.ok) throw new Error(`marks route answered ${response.status}`)
             const payload = await response.json()
+            pendingWrites = Math.max(0, pendingWrites - 1)
+            committed += 1
+            if (mine !== revision) return
             snapshot = {
               colors: readMarks(payload === null || payload === undefined ? undefined : payload.marks),
+              palette: readPalette(payload === null || payload === undefined ? undefined : payload.palette),
+              paletteWritable: payload === null || payload === undefined || payload.paletteStorage === undefined
+                ? true
+                : payload.paletteStorage.writable !== false,
               ready: true,
               status: 'ready',
               writable: true,
@@ -310,7 +350,68 @@ window.__ModuleLoader__.load({
             publish()
           })
           .catch((error) => {
-            // Keep the optimistic view but say it is unsaved, then reconcile.
+            pendingWrites = Math.max(0, pendingWrites - 1)
+            if (mine !== revision) return
+            snapshot = { ...snapshot, status: 'write-failed', error: String(error) }
+            publish()
+            load()
+          })
+      }
+
+      /**
+       * Add or remove one saved colour. The request carries only the action, so
+       * the Host applies it to the latest table it holds: a slow first read, a
+       * second tab, or a late response can no longer replace someone else's
+       * addition with a stale list.
+       */
+      const writePalette = (action) => {
+        revision += 1
+        pendingWrites += 1
+        const mine = revision
+        const same = (left, right) => left.h === right.h && left.s === right.s && left.v === right.v && left.a === right.a
+        if (action.add !== undefined) {
+          if (!snapshot.palette.some((item) => same(item, action.add))) {
+            snapshot = { ...snapshot, palette: [...snapshot.palette, action.add].slice(-32) }
+          }
+        } else if (action.remove !== undefined) {
+          snapshot = { ...snapshot, palette: snapshot.palette.filter((item) => !same(item, action.remove)) }
+        }
+        publish()
+        let request
+        try {
+          request = fetch(PALETTE_ROUTE, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(action),
+          })
+        } catch (error) {
+          pendingWrites = Math.max(0, pendingWrites - 1)
+          snapshot = { ...snapshot, error: String(error), status: 'write-failed' }
+          publish()
+          return
+        }
+        request
+          .then(async (response) => {
+            if (!response.ok) throw new Error(`palette route answered ${response.status}`)
+            const payload = await response.json()
+            pendingWrites = Math.max(0, pendingWrites - 1)
+            committed += 1
+            if (mine !== revision) return
+            const storage = payload === null || payload === undefined ? undefined : payload.storage
+            const writable = storage === undefined || storage.writable !== false
+            snapshot = {
+              ...snapshot,
+              palette: readPalette(payload === null || payload === undefined ? undefined : payload.palette),
+              paletteWritable: writable,
+              status: writable ? 'ready' : 'write-failed',
+              error: writable ? '' : (storage?.error || 'palette write failed'),
+            }
+            publish()
+          })
+          .catch((error) => {
+            pendingWrites = Math.max(0, pendingWrites - 1)
+            if (mine !== revision) return
             snapshot = { ...snapshot, status: 'write-failed', error: String(error) }
             publish()
             load()
@@ -348,6 +449,8 @@ window.__ModuleLoader__.load({
         getSnapshot: () => snapshot,
         set: (sessionId, color) => { write(sessionId, color) },
         clear: (sessionId) => { write(sessionId, undefined) },
+        addPalette: (color) => { writePalette({ add: color }) },
+        removePalette: (color) => { writePalette({ remove: color }) },
         refresh: load,
         dispose: () => {
           clearInterval(timer)
@@ -409,6 +512,11 @@ window.__ModuleLoader__.load({
 .dsh-sc-swatch:focus-visible{outline:2px solid #76a9ff;outline-offset:2px}
 .dsh-sc-swatch i{display:block;width:100%;height:100%;border-radius:5px}
 .dsh-sc-add{width:22px;height:22px;border:1px dashed #b0b0b8;border-radius:6px;background:#fff;color:#3a3a3c;cursor:pointer;font-size:16px;line-height:1;padding:0}
+.dsh-sc-mine{position:relative;display:inline-flex}
+.dsh-sc-remove{position:absolute;top:-6px;right:-6px;width:15px;height:15px;padding:0;border:1px solid #d0d0d6;border-radius:50%;background:#fff;color:#6e6e73;font:600 11px/1 Inter,ui-sans-serif,system-ui,sans-serif;cursor:pointer;display:none;place-items:center;box-shadow:0 1px 2px rgba(0,0,0,.18)}
+.dsh-sc-mine:hover .dsh-sc-remove,.dsh-sc-mine:focus-within .dsh-sc-remove{display:grid}
+.dsh-sc-remove:hover{background:#ffe5e5;border-color:#ff9f9f;color:#c00}
+@media (hover:none){.dsh-sc-remove{display:grid}}
 .dsh-sc-actions{display:flex;justify-content:flex-end;gap:6px;margin-top:10px}
 .dsh-sc-btn{height:26px;padding:0 10px;border:1px solid #d0d0d6;border-radius:7px;background:#fff;color:#1d1d1f;cursor:pointer;font-size:12px}
 .dsh-sc-btn:focus-visible{outline:2px solid #76a9ff;outline-offset:2px}
@@ -802,9 +910,8 @@ window.__ModuleLoader__.load({
 
     /** The system-style picker panel, positioned against its trigger. */
     function ColorPanel(props) {
-      const { t, value, onChange, onClose, anchor } = props
+      const { t, value, onChange, onClose, anchor, palette, onAdd, onRemove } = props
       const [draft, setDraft] = React.useState(value)
-      const [mine, setMine] = React.useState([])
       const panelRef = React.useRef(null)
       const [position, setPosition] = React.useState(null)
 
@@ -1009,16 +1116,27 @@ window.__ModuleLoader__.load({
           { className: 'dsh-sc-section' },
           React.createElement('h4', null, t('mine')),
           React.createElement('div', { className: 'dsh-sc-swatches' },
-            mine.map((color, index) => React.createElement(
-              'button',
-              { key: `mine-${index}`, type: 'button', className: 'dsh-sc-swatch', 'aria-label': t('custom'), onClick: () => commit(color) },
-              React.createElement('i', { style: { background: cssOf(color) } }),
+            palette.map((color, index) => React.createElement(
+              'span',
+              { key: `mine-${index}`, className: 'dsh-sc-mine' },
+              React.createElement(
+                'button',
+                { type: 'button', className: 'dsh-sc-swatch', 'aria-label': t('custom'), onClick: () => commit(color) },
+                React.createElement('i', { style: { background: cssOf(color) } }),
+              ),
+              React.createElement('button', {
+                type: 'button',
+                className: 'dsh-sc-remove',
+                'aria-label': t('removeMine'),
+                title: t('removeMine'),
+                onClick: () => onRemove(color),
+              }, '\u00d7'),
             )),
             React.createElement('button', {
               type: 'button',
               className: 'dsh-sc-add',
               'aria-label': t('addMine'),
-              onClick: () => setMine((current) => (current.some((item) => toHex(item) === toHex(draft) && item.a === draft.a) ? current : [...current, draft])),
+              onClick: () => onAdd(draft),
             }, '+')),
         ),
         React.createElement(
@@ -1051,7 +1169,7 @@ window.__ModuleLoader__.load({
       const start = color === undefined ? { h: 358, s: 0.68, v: 0.9, a: 1 } : color
       // Marks come from the Host route. When it is not answering, say so on the
       // control instead of looking like a Session that simply has no colour.
-      const offline = snapshot.ready !== true
+      const offline = snapshot.ready !== true || snapshot.paletteWritable === false
 
       return React.createElement(
         React.Fragment,
@@ -1083,6 +1201,9 @@ window.__ModuleLoader__.load({
             t,
             anchor: buttonRef.current,
             value: start,
+            palette: snapshot.palette,
+            onAdd: (color) => store.addPalette(color),
+            onRemove: (color) => store.removePalette(color),
             onChange: (next) => {
               if (next === undefined) store.clear(sessionId)
               else store.set(sessionId, next)

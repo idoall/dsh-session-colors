@@ -344,7 +344,7 @@ test('a device can report which build it runs without a debugger', () => {
   // layer inside the shell overlay, the next followed DSH 0.1.7's animated
   // rows, and this one declares the picker's macOS window region; telling them
   // apart by eye is what makes "hard-refresh that device" an actionable answer.
-  assert.match(source, /const BUILD = 'host-routes\+animated-rows\+drag-exclude'/)
+  assert.match(source, /const BUILD = 'host-routes\+animated-rows\+drag-exclude\+palette'/)
   assert.match(source, /build=\$\{BUILD\}/)
   assert.match(source, /· \$\{BUILD\}/)
 })
@@ -572,9 +572,10 @@ test('the Host half serves a durable marks route', async () => {
     }),
     effect: (fn) => { registered.push(fn); return fn() },
   }, { dataDir: undefined })
-  assert.equal(routes.length, 1)
+  assert.equal(routes.length, 2)
   assert.equal(routes[0].kind, 'exact')
   assert.equal(routes[0].path, '/plugins/dsh-session-colors/marks')
+  assert.ok(routes.some((route) => route.path === '/plugins/dsh-session-colors/palette'), 'the palette route is registered')
   assert.equal(typeof routes[0].handler, 'function')
 })
 
@@ -702,4 +703,136 @@ test('the Host dependency is declared the way DSH 0.1.7 resolves a linked plugin
   for (const peer of ['@deepseek-ai/dsh-client-ui-layout', '@deepseek-ai/dsh-client-ui-conversation']) {
     assert.match(pkg.peerDependencies[peer], /0\.1\.7/)
   }
+})
+test('the Host half keeps saved colours in their own document', async () => {
+  const { mkdtempSync, writeFileSync, existsSync } = await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  const mod = await import(resolve(root, 'src/index.js'))
+  const red = { h: 0, s: 1, v: 1, a: 1 }
+  const blue = { h: 240, s: 1, v: 1, a: 0.5 }
+
+  const dir = mkdtempSync(join(tmpdir(), 'dsh-sc-palette-'))
+  const store = mod.createPaletteFile(dir)
+  store.add(red)
+  store.add(red)
+  store.add(blue)
+  assert.deepEqual(store.get(), [red, blue], 'duplicates are ignored and add order is kept')
+  assert.ok(existsSync(join(dir, 'palette.json')), 'the palette has a document of its own')
+  assert.deepEqual(mod.createPaletteFile(dir).get(), [red, blue], 'a restart reads it back')
+  store.remove(red)
+  assert.deepEqual(store.get(), [blue], 'remove drops one colour by value')
+
+  // A full palette keeps the newest colour, the same end the browser half keeps.
+  const full = mod.createPaletteFile(mkdtempSync(join(tmpdir(), 'dsh-sc-full-')))
+  for (let h = 0; h <= 32; h += 1) full.add({ h, s: 1, v: 1, a: 1 })
+  assert.equal(full.get().length, 32)
+  assert.equal(full.get()[0].h, 1, 'the oldest entry is the one dropped')
+  assert.equal(full.get().at(-1).h, 32, 'the newest entry survives')
+
+  // A downgrade rewrites the marks document; the palette must survive it.
+  const legacyDir = mkdtempSync(join(tmpdir(), 'dsh-sc-legacy-'))
+  writeFileSync(join(legacyDir, 'session-colors.json'), JSON.stringify({ version: 1, marks: {}, palette: [red] }))
+  assert.deepEqual(mod.createPaletteFile(legacyDir).get(), [red], 'the first run imports the old field')
+  assert.ok(existsSync(join(legacyDir, 'palette.json')), 'the import lands in the separate document')
+
+  // A damaged palette document is reported, never replaced with old data.
+  const brokenDir = mkdtempSync(join(tmpdir(), 'dsh-sc-broken-'))
+  writeFileSync(join(brokenDir, 'session-colors.json'), JSON.stringify({ version: 1, marks: {}, palette: [red] }))
+  writeFileSync(join(brokenDir, 'palette.json'), '{ not json')
+  const broken = mod.createPaletteFile(brokenDir)
+  assert.deepEqual(broken.get(), [], 'a corrupt document is not overwritten from the legacy field')
+  assert.equal(broken.status.readable, false)
+  assert.match(String(broken.status.error), /\S/)
+})
+
+test('a palette request must carry exactly one action', async () => {
+  const { mkdtempSync } = await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  const mod = await import(resolve(root, 'src/index.js'))
+  const red = { h: 0, s: 1, v: 1, a: 1 }
+  const blue = { h: 240, s: 1, v: 1, a: 0.5 }
+  const dir = mkdtempSync(join(tmpdir(), 'dsh-sc-palette-'))
+  const store = mod.createPaletteFile(dir)
+  store.add(red)
+  store.add(blue)
+
+  const routes = []
+  mod.apply({
+    inject: (_deps, body) => body({
+      webServer: { register: (route) => { routes.push(route); return () => {} } },
+      connection: {},
+    }),
+    effect: (fn) => fn(),
+  }, { dataDir: dir })
+  const route = routes.find((entry) => entry.path === '/plugins/dsh-session-colors/palette')
+  assert.ok(route, 'the palette route is registered')
+
+  const call = async (payload) => {
+    const res = responseStub()
+    const req = {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'sec-fetch-site': 'same-origin' },
+      [Symbol.asyncIterator]: async function* () {
+        if (payload !== undefined) yield Buffer.from(JSON.stringify(payload))
+      },
+    }
+    await route.handler(req, res, { id: 'peer-1' })
+    return { status: res.statusCode, body: res.body === '' ? undefined : JSON.parse(res.body) }
+  }
+
+  assert.equal((await call({})).status, 400, 'a missing action is a bad request, not a clear')
+  assert.deepEqual(mod.createPaletteFile(dir).get(), [red, blue], 'a bad request leaves the table alone')
+  assert.equal((await call({ add: red, remove: blue })).status, 400, 'two actions are refused')
+  assert.equal((await call({ palette: [] })).status, 400, 'the legacy table write no longer clears anything')
+  assert.equal((await call({ add: { h: 'x' } })).status, 400, 'a malformed colour is refused')
+
+  assert.deepEqual((await call({ add: blue })).body.palette, [red, blue], 'a duplicate add is a no-op')
+  assert.deepEqual((await call({ remove: red })).body.palette, [blue])
+  assert.deepEqual((await call({ clear: true })).body.palette, [], 'an explicit clear is the only reset')
+  assert.equal((await call({ clear: false })).status, 400, 'clear must be true')
+})
+
+test('a read that starts during a save cannot roll the palette back', async () => {
+  const pending = []
+  let hostPalette = []
+  const host = {
+    fetch(url, init) {
+      if (url.endsWith('/palette')) {
+        return new Promise((resolve) => pending.push(() => {
+          hostPalette = [{ h: 240, s: 1, v: 1, a: 0.5 }]
+          resolve({ ok: true, status: 200, json: async () => ({ palette: hostPalette, storage: { writable: true } }) })
+        }))
+      }
+      return new Promise((resolve) => pending.push(() => resolve({
+        ok: true,
+        status: 200,
+        json: async () => ({ marks: {}, palette: [...hostPalette], paletteStorage: { writable: true } }),
+      })))
+    },
+  }
+  const { exports } = loadClient(host)
+  const { ctx } = fakeContext('/Users/one')
+  let header
+  ctx.slots.register = (options, render) => {
+    if (options.name === 'conversation.session.header.utilities') header = render
+    return () => {}
+  }
+  exports.apply(ctx)
+  const store = header({ sessionId: 's1' }).props.store
+
+  store.addPalette({ h: 240, s: 1, v: 1, a: 0.5 })
+  store.refresh()
+  assert.equal(store.getSnapshot().palette.length, 1, 'optimistic add')
+
+  // The poll started while the save was in flight, and answers with the old
+  // table first: it must not replace the view.
+  pending[2]()
+  await settle()
+  assert.equal(store.getSnapshot().palette.length, 1, 'a read during the save is discarded')
+
+  pending[1]()
+  await settle()
+  assert.equal(store.getSnapshot().palette.length, 1, 'the save answer is adopted')
 })
