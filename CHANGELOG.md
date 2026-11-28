@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Saved colours ("my colours") persist in their own Host document
+  (`palette.json`), so they survive reloads, restarts and devices. Adding or
+  removing one sends an operation rather than the whole table: a slow first
+  read, a second tab, or a late response can no longer replace a colour someone
+  else just saved. A palette request without an action is refused instead of
+  clearing the table.
+
 ## [0.1.20] - 2026-11-23
 
 ### Fixed

@@ -110,7 +110,10 @@ the Host process.
    colour, the colour itself once it has one).
 3. Pick a colour, or paste a hex value. The bar appears on that Session's sidebar
    row immediately.
-4. To clear it, open the picker again and click **Clear mark**, or choose the
+4. Save a colour: click **+** in **My colours**; move the pointer over a saved
+   swatch and click **×** to remove it. Saved colours live on the Host, so they
+   survive reloads, restarts and devices.
+5. To clear it, open the picker again and click **Clear mark**, or choose the
    transparent swatch among the theme colours.
 
 Opening the picker on a marked Session starts from its current colour. Colours are
