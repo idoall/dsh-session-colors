@@ -36,15 +36,13 @@ function loadClient(host = fakeHost()) {
     useCallback: (callback) => callback,
     useSyncExternalStore: (_subscribe, getSnapshot) => getSnapshot(),
   }
-  // The chip layer portals itself out of the shell overlay's stacking context,
-  // so `react-dom` is required alongside React.
-  const ReactDOM = { createPortal: (children, container) => ({ portal: { children, container } }) }
   const listeners = new Map()
+  const appended = []
   const documentStub = {
-    head: { append: () => {} },
+    head: { append: (node) => { appended.push(node) } },
     body: {},
-    getElementById: () => null,
-    createElement: () => ({ remove: () => {} }),
+    getElementById: (id) => appended.find((node) => node.id === id) ?? null,
+    createElement: () => ({ id: '', textContent: '', remove() {} }),
     querySelectorAll: () => [],
     addEventListener: (name, handler) => { listeners.set(name, handler) },
     removeEventListener: (name) => { listeners.delete(name) },
@@ -78,10 +76,9 @@ function loadClient(host = fakeHost()) {
   const exports = registration.factory((id) => {
     required.push(id)
     if (id === 'react') return React
-    if (id === 'react-dom') return ReactDOM
     throw new Error(`unexpected require: ${id}`)
   })
-  return { registration, exports, required, storage, listeners, documentStub, React, sandbox }
+  return { registration, exports, required, storage, listeners, documentStub, appended, React, sandbox }
 }
 
 /** A client context stand-in recording every slot registration. */
@@ -118,8 +115,8 @@ function hostFacts(initial) {
 test('the browser half registers as the package id and needs only shell modules', () => {
   const { registration, required } = loadClient()
   assert.equal(registration.id, '@idoall/dsh-session-colors')
-  // Both are DSH web-shell static modules; nothing else may be pulled in.
-  assert.deepEqual(required, ['react', 'react-dom'])
+  // React is the only shell module the bundle needs.
+  assert.deepEqual(required, ['react'])
 })
 
 test('the browser half applies against every surface it targets', () => {
@@ -130,21 +127,8 @@ test('the browser half applies against every surface it targets', () => {
   // Field-by-field: the seats object is created inside the VM realm, so a
   // structural compare against a host object would fail on prototypes.
   assert.equal(exports.seats['conversation.session.header.utilities'], 'active')
-  assert.equal(exports.seats['shell.overlay'], 'active')
   const names = registrations.map((entry) => entry.name)
   assert.ok(names.includes('conversation.session.header.utilities'), 'the picker seat is registered')
-  assert.ok(names.includes('shell.overlay'), 'the chip layer seat is registered')
-})
-
-test('a surface the running build does not declare stays absent, not fatal', () => {
-  const { exports } = loadClient()
-  const { ctx } = fakeContext('/Users/one')
-  ctx.slots.inject = (name) => {
-    if (name === 'shell.overlay') throw new Error('slot not declared')
-  }
-  assert.doesNotThrow(() => exports.apply(ctx))
-  assert.equal(exports.seats['shell.overlay'], 'unavailable')
-  assert.equal(exports.seats['conversation.session.header.utilities'], 'active')
 })
 
 /**
@@ -305,13 +289,13 @@ test('colour conversion round-trips and parses the system picker formats', () =>
   assert.equal(exports.parseHex('nope'), undefined)
 })
 
-test('a chip keeps its alpha and never overlaps the row status slot', () => {
+test('a row strip keeps its alpha and the row padding geometry', () => {
   const { exports } = loadClient()
   assert.match(exports.cssOf({ h: 0, s: 1, v: 1, a: 0.5 }), /^rgba\(255, 0, 0, 0\.5\)$/)
-  // The row is [8px padding][16px status slot][4px][title]. The chip is a bar in
-  // the padding, so it must stay clear of the dot that starts at 8px + 3px.
-  assert.ok(exports.CHIP_OFFSET >= 0)
-  assert.ok(exports.CHIP_OFFSET + exports.CHIP_WIDTH <= 8, 'the chip stays inside the 8px padding')
+  // The strip is painted by the row itself, inside the row's transparent
+  // inline border, so it never reaches the status dot.
+  assert.match(source, /background-size:4px 16px/)
+  assert.match(source, /background-position:calc\(2px - var\(--dsh-sidebar-paint-inset,0px\)\) 50%/)
 })
 
 test('the header control carries no theme-specific colour', () => {
@@ -331,20 +315,12 @@ test('the header control carries no theme-specific colour', () => {
   assert.match(source, /dsh-sc-action\{[^}]*background:rgba\(128,128,128,\.12\)/)
 })
 
-test('a DOM dump answers which build and channel state a device has', () => {
-  // The phone cannot open a console; the element carries the answer instead.
-  assert.match(source, /'data-dsh-sc-build': BUILD/)
-  assert.match(source, /'data-dsh-sc-status': snapshot\.status/)
-  assert.match(source, /'data-dsh-sc-writable': String\(snapshot\.writable\)/)
-  assert.match(source, /'data-dsh-sc-marks': String\(Object\.keys\(snapshot\.colors\)\.length\)/)
-})
-
 test('a device can report which build it runs without a debugger', () => {
   // The old build stored marks in the browser, the one before this painted the
   // layer inside the shell overlay, the next followed DSH 0.1.7's animated
   // rows, and this one declares the picker's macOS window region; telling them
   // apart by eye is what makes "hard-refresh that device" an actionable answer.
-  assert.match(source, /const BUILD = 'host-routes\+animated-rows\+drag-exclude'/)
+  assert.match(source, /const BUILD = 'host-routes\+row-strips'/)
   assert.match(source, /build=\$\{BUILD\}/)
   assert.match(source, /· \$\{BUILD\}/)
 })
@@ -358,139 +334,23 @@ test('a device that cannot read marks says so instead of looking empty', () => {
   assert.match(source, /describe,/)
 })
 
-test('a chip is clipped to the sidebar, never painted outside it', () => {
-  // A row scrolled out of the sidebar list still has a viewport-relative box.
-  // Without clipping to the scrolling container the chip painted over unrelated
-  // UI — reported as a colour "floating outside the workspace".
-  assert.match(source, /function scrollContainerOf\(/)
-  assert.match(source, /function clipFor\(/)
-  assert.match(source, /clipPath: layer\.clip/)
-  // Rows entirely outside the container are skipped, not just clipped.
-  assert.match(source, /box\.bottom <= bounds\.top \|\| box\.top >= bounds\.bottom/)
-})
-
-test('the chip layer paints just above the surface that holds the sidebar', () => {
-  const { exports } = loadClient()
-  const row = { parentElement: null }
-  // Stock desktop DSH: every ancestor is in normal flow, so the layer sits at 1
-  // and stays below dialogs rather than floating over them.
-  row.parentElement = { parentElement: null }
-  assert.equal(exports.layerZIndexOf(row), 1)
-  // A phone adapter promotes the sidebar to a fixed z-index:10000 drawer. A
-  // layer left at 1 is painted behind that drawer's opaque background — which
-  // is exactly how the chips disappeared on a phone while a DOM dump still
-  // showed them present.
-  row.parentElement = {
-    __style: { position: 'fixed', zIndex: '10000' },
-    parentElement: { __style: { position: 'relative', zIndex: 'auto' }, parentElement: null },
-  }
-  assert.equal(exports.layerZIndexOf(row), 10001)
-  // An outer stacking context caps an inner value, so the outermost z-index is
-  // the level that actually competes with the layer.
-  row.parentElement = {
-    __style: { position: 'fixed', zIndex: '10000' },
-    parentElement: { __style: { position: 'relative', zIndex: '5' }, parentElement: null },
-  }
-  assert.equal(exports.layerZIndexOf(row), 6)
-  // An unreadable chain must not cost the layer its chips.
-  assert.equal(exports.layerZIndexOf(undefined), 1)
-  assert.equal(exports.layerZIndexOf({}), 1)
-})
-
-test('the chip layer leaves the shell overlay so a drawer cannot cover it', () => {
-  // DSH confines `shell.overlay` to `z-index: 20` on the overlay layer, and
-  // nothing inside a stacking context can be raised above a sibling of it. The
-  // portal to the document body is the way out; the layer must stay
-  // click-through after it.
-  assert.match(source, /require\('react-dom'\)/)
-  assert.match(source, /createPortal\(node, document\.body\)/)
-  assert.match(source, /\.dsh-sc-layer\{[^}]*pointer-events:none/)
-  assert.match(source, /zIndex: layer\.zIndex/)
-})
-
-test('each mutation option set gets its own observer', () => {
-  // A second observe() call on the SAME target replaces the first one's options
-  // instead of merging them (DOM spec). Sharing one observer for childList and
-  // for body attributes silently stopped childList from being watched at all, so
-  // collapsing a workspace removed its rows without a re-sync and the chips sat
-  // at the old coordinates until the peer poll re-rendered the layer ~20s later.
-  const watches = [...source.matchAll(/\.observe\(document\.body,\s*\{([^}]*)\}/g)].map((m) => m[1])
-  assert.equal(watches.length, 3, 'childList, the drawer class, and the collapsed-workspace state')
-  assert.ok(watches.some((w) => /childList: true/.test(w)), 'rows appearing and disappearing must be watched')
-  assert.ok(watches.some((w) => /attributeFilter: \['class'\]/.test(w)), 'the phone drawer must be watched')
-  assert.ok(watches.some((w) => /aria-expanded/.test(w)), 'a collapse that only hides rows must be watched')
-  assert.equal(
-    [...source.matchAll(/new MutationObserver\(/g)].length,
-    watches.length,
-    'one observer per option set, or the options replace each other',
-  )
-})
-
-test('the chip layer follows the animated rows DSH 0.1.7 introduced', () => {
-  // 0.1.7 glides sidebar rows with the Web Animations API
-  // (`element.animate`): no scroll, no resize, no child mutation, and neither
-  // `transitionrun` nor `transitionend`. The one MutationObserver callback for
-  // a collapse lands on the animation's first frame, when every row is still
-  // painted at its old coordinates, so a single re-measure would strand the
-  // chips. A row-list mutation and a resize must therefore open the same
-  // bounded follow window a CSS transition does.
-  assert.match(source, /const kick = \(\) => \{ sync\(\); follow\(\) \}/)
-  assert.match(source, /const onRowsMutation = \(records\) => \{ if \(rowsChanged\(records\)\) kick\(\); else sync\(\) \}/)
-  assert.match(source, /target\.closest\('\[role="tree"\]'\) !== null/)
-  assert.equal([...source.matchAll(/new MutationObserver\(kick\)/g)].length, 2, 'the drawer class and the row state')
-  assert.match(source, /addEventListener\('resize', kick\)/)
-  assert.match(source, /removeEventListener\('resize', kick\)/)
-  assert.match(source, /const SETTLE_FRAMES = \d+/)
-  assert.match(source, /cancelFrame\(frame\)/)
-})
-
-test('the chip layer follows alpha.3 drawer attributes without transition events', () => {
-  const { exports, React, sandbox, documentStub } = loadClient()
-  const { ctx } = fakeContext()
-  let overlay
+test('a marked row paints its own strip and clearing removes it', () => {
+  const { exports, documentStub, appended } = loadClient()
+  const { ctx } = fakeContext('/Users/one')
+  let header
   ctx.slots.register = (options, render) => {
-    if (options.name === 'shell.overlay') overlay = render
+    if (options.name === 'conversation.session.header.utilities') header = render
     return () => {}
   }
   exports.apply(ctx)
-  const component = overlay({})
-  component.props.store.dispose()
-  const watchers = []
-  const cleanups = []
-  let measurements = 0
-  let scheduled = 0
-  React.useEffect = (effect) => cleanups.push(effect())
-  React.useState = (initial) => [initial, () => { measurements++ }]
-  sandbox.window.requestAnimationFrame = () => ++scheduled
-  sandbox.window.cancelAnimationFrame = () => {}
-  sandbox.MutationObserver = class {
-    constructor(callback) { this.callback = callback }
-    observe(target, options) { watchers.push({ target, options, callback: this.callback }) }
-    disconnect() {}
-  }
-  component.type(component.props)
-  const initial = measurements
-  for (const attribute of ['data-sidebar-collapsed', 'data-sidebar-drawer', 'data-sidebar-instant']) {
-    const watcher = watchers.find(({ target, options }) => target === documentStub.body
-      && options.subtree && options.attributes && options.attributeFilter?.includes(attribute))
-    assert.ok(watcher, `${attribute} must trigger remeasurement even with reduced motion`)
-    watcher.callback([{ type: 'attributes', attributeName: attribute, target: {} }])
-  }
-  assert.equal(measurements, initial + 3)
-  assert.ok(scheduled > 0, 'animated and instant drawer changes share the bounded follow window')
-  for (const cleanup of cleanups) cleanup?.()
-})
-
-test('the chip layer follows a drawer that slides in without a DOM change', () => {
-  // The phone adapter opens its sidebar by toggling a class on `body` and
-  // animating a transform: no scroll, no resize, no child mutation. Without
-  // these triggers the chips keep the coordinates they had while the drawer was
-  // still off-screen, so a fixed stacking level alone would not show them.
-  assert.match(source, /addEventListener\('transitionrun', onTransition, true\)/)
-  assert.match(source, /addEventListener\('transitionend', onTransition, true\)/)
-  assert.match(source, /attributeFilter: \['class'\]/)
-  assert.match(source, /const SETTLE_FRAMES = \d+/)
-  assert.match(source, /cancelFrame\(frame\)/)
+  const style = appended.find((node) => node.id === 'dsh-session-colors-row-strips')
+  assert.ok(style, 'the strip stylesheet is injected')
+  const store = header({ sessionId: 's1' }).props.store
+  store.set('session-a', { h: 0, s: 1, v: 1, a: 1 })
+  assert.match(style.textContent, /data-row-key="session:session-a"/)
+  assert.match(style.textContent, /background-image:linear-gradient/)
+  store.clear('session-a')
+  assert.doesNotMatch(style.textContent, /session-a/)
 })
 
 test('the hex field has room for all seven characters', () => {

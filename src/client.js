@@ -7,21 +7,17 @@
  * - `conversation.session.header.utilities` carries the picker button and its
  *   system-style panel (saturation/value field, hue, alpha, hex, RGBA, theme
  *   swatches, saved colours).
- * - `shell.overlay` carries the chip layer: a frame-wide, fixed, click-through
- *   surface on which one small colour chip is painted per marked Session row.
- *   The surface is registered there but rendered through a portal on
- *   `document.body`, because DSH confines the overlay to a stacking context of
- *   its own and a phone adapter may promote the sidebar above it — see
- *   `ChipsLayer` and `layerZIndexOf`.
+ * - A marked Session row paints its own strip: one CSS rule per mark, keyed by
+ *   the row's `data-row-key` (`session:<id>`), paints the colour as a
+ *   background image. A background on the row needs no geometry reads and no
+ *   listeners, so the strip moves with the list in the same frame, including
+ *   during momentum scrolling. The Session-row leading slot shares the
+ *   status-dot cell and is not mounted while a Session is running, so it is not
+ *   used here.
  *
- * The Session-row leading slot shares the status-dot cell and is not mounted
- * in every row state, so the chip deliberately stays on its own layer. The
- * layer finds rows by ARIA role and reads the Session id from the ordinary
- * row's `data-row-key` (`session:<id>`), falling back to known React fiber props.
- * Search-result rows without either supported identity shape are skipped.
- * That coupling is deliberate and is kept harmless: every step is guarded, an
- * unreadable row is skipped, and the layer never accepts pointer events, so a
- * future DSH change can at worst stop the chips from appearing.
+ * That coupling to `data-row-key` is deliberate and is kept harmless: a rule
+ * that matches no row simply paints nothing, so a future DSH change can at
+ * worst stop the strips from appearing.
  *
  * Written as a hand-authored `__ModuleLoader__` bundle (the only format the
  * client loader accepts for a package client half), so it needs no build step.
@@ -32,19 +28,6 @@ window.__ModuleLoader__.load({
     const module = { exports: {} }
     const exports = module.exports
     const React = require('react')
-    /**
-     * `react-dom` is one of the DSH web shell's static modules. It is read
-     * defensively: a shell that stopped exposing it would cost the chip layer
-     * its escape from the shell overlay's stacking context (see `ChipsLayer`),
-     * not the whole plugin.
-     */
-    let createPortal
-    try {
-      createPortal = require('react-dom').createPortal
-    } catch {
-      createPortal = undefined
-    }
-
     const NS = 'sessionColor'
     /**
      * Build marker. Stored marks are Host-side as of the `host-routes` build,
@@ -54,7 +37,7 @@ window.__ModuleLoader__.load({
      * Desktop window region (DSH 0.2.2-rc.1). A device that still shows an older
      * marker is running a cached client and must be hard-refreshed.
      */
-    const BUILD = 'host-routes+animated-rows+drag-exclude'
+    const BUILD = 'host-routes+row-strips'
 
     /**
      * This plugin's own Host route. Kept in sync with the Host half's
@@ -66,20 +49,8 @@ window.__ModuleLoader__.load({
     /** How often an open page re-reads marks another device may have changed. */
     const PEER_POLL_MS = 20000
     const ACTION_ID = 'session-color-mark'
-    const OVERLAY_ID = 'session-color-chips'
+    const ROW_STYLE_ID = 'dsh-session-colors-row-strips'
     const STYLE_ID = 'dsh-session-color-style'
-
-    /** Chip geometry: a bar in the row's 8px left padding, clear of the status dot. */
-    const CHIP_WIDTH = 4
-    const CHIP_HEIGHT = 16
-    const CHIP_OFFSET = 2
-
-    /**
-     * How long to keep re-measuring after an ancestor of the rows starts moving.
-     * The phone adapter slides its sidebar in over ~250ms; 40 frames covers that
-     * and then stops on its own, so an idle page never runs a measuring loop.
-     */
-    const SETTLE_FRAMES = 40
 
     /** Theme swatches: the shipped macOS picker set, last one fully transparent. */
     const THEME = [
@@ -365,17 +336,9 @@ window.__ModuleLoader__.load({
     //#region stylesheet
     /**
      * The picker keeps the system panel's own light palette rather than the
-     * app's dark chrome, so it reads as an attached system control. The chip
-     * layer itself is inert: fixed, full-frame and click-through.
-     *
-     * The layer's stacking level is measured per render (`layerZIndexOf`), not
-     * written here: the surface it decorates is the sidebar, and an adapter may
-     * promote that sidebar into a fixed drawer carrying a z-index of its own.
-     * The 1 below is only what the layer paints at before its first measurement.
+     * app's dark chrome, so it reads as an attached system control.
      */
     const STYLE = `
-.dsh-sc-layer{position:fixed;inset:0;z-index:1;overflow:hidden;pointer-events:none}
-.dsh-sc-chip{position:absolute;width:${CHIP_WIDTH}px;height:${CHIP_HEIGHT}px;border-radius:2px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.28)}
 .dsh-sc-action{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;border:1px solid rgba(128,128,128,.5);border-radius:7px;color:inherit;background:rgba(128,128,128,.12);cursor:pointer;font-size:13px;line-height:1}
 .dsh-sc-action:hover{border-color:rgba(128,128,128,.85);background:rgba(128,128,128,.22)}
 .dsh-sc-action:focus-visible{outline:2px solid #76a9ff;outline-offset:2px}
@@ -413,6 +376,60 @@ window.__ModuleLoader__.load({
 .dsh-sc-btn{height:26px;padding:0 10px;border:1px solid #d0d0d6;border-radius:7px;background:#fff;color:#1d1d1f;cursor:pointer;font-size:12px}
 .dsh-sc-btn:focus-visible{outline:2px solid #76a9ff;outline-offset:2px}
 `
+
+    /** Escape a value for a double-quoted CSS attribute selector. */
+    function cssStringEscape(value) {
+      return String(value).replace(/[\\"\n\r\f]/g, (character) => ({
+        '\\': '\\\\',
+        '"': '\\"',
+        '\n': '\\a ',
+        '\r': '\\d ',
+        '\f': '\\c ',
+      }[character]))
+    }
+
+    /**
+     * Paint each marked Session row's colour on the row itself.
+     *
+     * One rule per mark, keyed by the row's `data-row-key`. The row owns the
+     * painting, so scrolling needs no measurement and the strip never lags the
+     * list. `--dsh-sidebar-paint-inset` is the row's own transparent inline
+     * border; the strip is placed against the row's outer edge like the shipped
+     * row art, and padding-box clipping keeps it inside that border.
+     */
+    function installRowChips(store) {
+      try {
+        if (document.getElementById(ROW_STYLE_ID) !== null) return () => {}
+        const node = document.createElement('style')
+        node.id = ROW_STYLE_ID
+        document.head.append(node)
+        const paint = () => {
+          let colors
+          try {
+            colors = store.getSnapshot().colors
+          } catch {
+            return
+          }
+          const rules = []
+          for (const id of Object.keys(colors)) {
+            const color = colors[id]
+            if (id === '' || !isColor(color)) continue
+            const value = cssOf(color)
+            const key = cssStringEscape(`${SESSION_ROW_KEY}${id}`)
+            rules.push(`div[data-row-key="${key}"]{background-image:linear-gradient(${value},${value});background-size:4px 16px;background-position:calc(2px - var(--dsh-sidebar-paint-inset,0px)) 50%;background-repeat:no-repeat}`)
+          }
+          node.textContent = rules.join('\n')
+        }
+        paint()
+        const unsubscribe = store.subscribe(paint)
+        return () => {
+          unsubscribe()
+          node.remove()
+        }
+      } catch {
+        return () => {}
+      }
+    }
 
     /** Install the stylesheet once per document, and hand back its removal. */
     function installStyle() {
@@ -472,272 +489,9 @@ window.__ModuleLoader__.load({
       return undefined
     }
 
-    /** Rendered Session rows, in document order. */
-    function sessionRows() {
-      try {
-        return [...document.querySelectorAll('[role="treeitem"][aria-selected]')]
-      } catch {
-        return []
-      }
-    }
     //#endregion
 
     //#region components
-    /**
-     * The nearest scrolling ancestor of a rendered row: the sidebar's list
-     * container. Chips are clipped to it, because a row scrolled out of that
-     * container still has a viewport-relative box and would otherwise paint a
-     * chip on top of unrelated UI outside the sidebar.
-     * @param node - a Session row element.
-     */
-    function scrollContainerOf(node) {
-      try {
-        let current = node === null || node === undefined ? null : node.parentElement
-        for (let depth = 0; current !== null && current !== undefined && depth < 12; depth += 1) {
-          const style = getComputedStyle(current)
-          const overflow = `${style.overflowY} ${style.overflow}`
-          if (/auto|scroll|hidden/.test(overflow) && current.clientHeight > 0) return current
-          current = current.parentElement
-        }
-      } catch {
-        // Without a container the layer falls back to clipping at the viewport.
-      }
-      return null
-    }
-
-    /** Viewport-relative clip rectangle for the chip layer, or 'none'. */
-    function clipFor(container) {
-      if (container === null || container === undefined) return 'none'
-      try {
-        const box = container.getBoundingClientRect()
-        const top = Math.max(0, box.top)
-        const left = Math.max(0, box.left)
-        const right = Math.max(0, window.innerWidth - Math.min(window.innerWidth, box.right))
-        const bottom = Math.max(0, window.innerHeight - Math.min(window.innerHeight, box.bottom))
-        return `inset(${top}px ${right}px ${bottom}px ${left}px)`
-      } catch {
-        return 'none'
-      }
-    }
-
-    /**
-     * Stacking level the chip layer must paint at, read from the row's own
-     * ancestor chain.
-     *
-     * The layer decorates the sidebar, so it belongs immediately above the
-     * sidebar — not above the whole app, which would paint chips over dialogs.
-     * Desktop DSH keeps the sidebar in normal flow (`z-index: auto`), so the
-     * answer is 1 there. A phone adapter promotes the sidebar to a
-     * `position: fixed; z-index: 10000` drawer, and a layer left at 1 is painted
-     * behind that drawer's opaque background — which is exactly how the chips
-     * vanished on a phone while a DOM dump still showed them present.
-     *
-     * The OUTERMOST z-index wins: an inner one is already confined by the
-     * stacking context of the outer one, so the inner value is not the level
-     * that competes with the layer. An unreadable chain falls back to 1, which
-     * is where the layer sits on a stock desktop.
-     * @param row - a rendered Session row.
-     */
-    function layerZIndexOf(row) {
-      let level = 0
-      try {
-        let node = row === null || row === undefined ? null : row.parentElement
-        for (let depth = 0; node !== null && node !== undefined && node !== document.documentElement && depth < 40; depth += 1) {
-          const style = getComputedStyle(node)
-          if (style.position !== 'static') {
-            const value = Number.parseInt(style.zIndex, 10)
-            if (Number.isFinite(value)) level = value
-          }
-          node = node.parentElement
-        }
-      } catch {
-        // No readable chain: the flow position is still better than nothing.
-      }
-      return level + 1
-    }
-
-    /** One animation frame, falling back to a timer where rAF is absent. */
-    function requestFrame(run) {
-      return typeof window.requestAnimationFrame === 'function' ? window.requestAnimationFrame(run) : window.setTimeout(run, 16)
-    }
-
-    /** Cancel a frame handed out by `requestFrame`, whichever mechanism it used. */
-    function cancelFrame(handle) {
-      if (handle === undefined) return
-      if (typeof window.cancelAnimationFrame === 'function') window.cancelAnimationFrame(handle)
-      else window.clearTimeout(handle)
-    }
-
-    /** One chip per marked row, positioned from the row's own box. */
-    function ChipsLayer(props) {
-      const { store, t } = props
-      const snapshot = React.useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
-      const [layer, setLayer] = React.useState({ items: [], clip: 'none', zIndex: 1 })
-
-      React.useEffect(() => {
-        let frame
-        let settling = 0
-        const step = () => {
-          frame = undefined
-          sync()
-          if (settling > 0) {
-            settling -= 1
-            frame = requestFrame(step)
-          }
-        }
-        /** Follow a moving ancestor for a while, then stop measuring. */
-        const follow = () => {
-          settling = SETTLE_FRAMES
-          if (frame === undefined) frame = requestFrame(step)
-        }
-        const sync = () => {
-          const rows = sessionRows()
-          const container = rows.length === 0 ? null : scrollContainerOf(rows[0])
-          const clip = clipFor(container)
-          const bounds = container === null ? null : container.getBoundingClientRect()
-          const items = []
-          for (const row of rows) {
-            const id = sessionIdOf(row)
-            if (id === undefined) continue
-            const color = snapshot.colors[id]
-            if (color === undefined) continue
-            let box
-            try {
-              box = row.getBoundingClientRect()
-            } catch {
-              continue
-            }
-            if (box.width === 0 && box.height === 0) continue
-            // Skip rows the container has scrolled out of view entirely.
-            if (bounds !== null && (box.bottom <= bounds.top || box.top >= bounds.bottom)) continue
-            items.push({
-              key: id,
-              left: box.left + CHIP_OFFSET,
-              top: box.top + (box.height - CHIP_HEIGHT) / 2,
-              background: cssOf(color),
-            })
-          }
-          setLayer({ items, clip, zIndex: rows.length === 0 ? 1 : layerZIndexOf(rows[0]) })
-        }
-        sync()
-        /**
-         * Re-measure now, then keep re-measuring for a bounded window.
-         *
-         * DSH 0.1.7 glides rows with the Web Animations API
-         * (`element.animate`): that fires neither `transitionrun` nor
-         * `transitionend` and mutates no DOM, so the one MutationObserver
-         * callback for a collapse lands on the animation's first frame — every
-         * row still painted at its old coordinates — and nothing would ever
-         * report the movement again. Following each mutation for the same
-         * bounded window as a transition keeps the chips on their rows.
-         */
-        const kick = () => { sync(); follow() }
-        // Rows move with their scroll container and re-render on every list
-        // change, so follow both. A scroll reports its own frames continuously,
-        // so it needs no follow window of its own.
-        document.addEventListener('scroll', sync, true)
-        window.addEventListener('resize', kick)
-        // A CSS transition moves every row without any scroll, resize or DOM
-        // mutation: the phone adapter slides the whole sidebar in with a
-        // transform on the drawer while the rows themselves never change. Only
-        // transitions on an ancestor of the rows are followed, so a hover on one
-        // row does not start a measuring loop.
-        const onTransition = (event) => {
-          const target = event === null || event === undefined ? undefined : event.target
-          if (target === null || target === undefined || typeof target.contains !== 'function') return
-          const rows = sessionRows()
-          if (rows.length === 0 || rows.includes(target) || !target.contains(rows[0])) return
-          follow()
-        }
-        document.addEventListener('transitionrun', onTransition, true)
-        document.addEventListener('transitionend', onTransition, true)
-        // Each option set needs its OWN observer. A second `observe()` call on
-        // the same target REPLACES the first one's options rather than merging
-        // them (DOM spec), so sharing one observer silently stopped childList
-        // from being watched at all: collapsing a workspace removed its rows
-        // without any re-sync, and the chips sat at their old coordinates until
-        // the peer poll happened to re-render the layer ~20s later.
-        const observers = []
-        try {
-          /**
-           * Whether a mutation could have changed the row list, and so started a
-           * row glide. The childList watch is body-wide because rows live deep
-           * inside the sidebar, so a mutation unrelated to the list — a
-           * streaming transcript, a tooltip — re-measures once but must not open
-           * a follow window for every frame it produces.
-           */
-          const rowsChanged = (records) => records.some((record) => {
-            const target = record.target
-            return target !== null && target !== undefined
-              && typeof target.closest === 'function'
-              && target.closest('[role="tree"]') !== null
-          })
-          const onRowsMutation = (records) => { if (rowsChanged(records)) kick(); else sync() }
-          const rowsObserver = new MutationObserver(onRowsMutation)
-          rowsObserver.observe(document.body, { childList: true, subtree: true })
-          observers.push(rowsObserver)
-          // The phone adapter opens its drawer by toggling a class on `body`.
-          // With transitions disabled the geometry still changes, just without a
-          // transition event to follow.
-          const drawerObserver = new MutationObserver(kick)
-          drawerObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] })
-          observers.push(drawerObserver)
-          // Retained rows can move without a childList mutation. DSH alpha.3's
-          // native drawer toggles frame attributes, not the body's class; with
-          // reduced motion or instant close there is no transition event either.
-          // Follow those attributes as well as workspace visibility state.
-          const stateObserver = new MutationObserver(kick)
-          stateObserver.observe(document.body, { attributes: true, attributeFilter: ['aria-expanded', 'hidden', 'data-sidebar-collapsed', 'data-sidebar-drawer', 'data-sidebar-instant'], subtree: true })
-          observers.push(stateObserver)
-        } catch {
-          // Without observers the layer still follows scroll, resize and transitions.
-        }
-        return () => {
-          cancelFrame(frame)
-          document.removeEventListener('scroll', sync, true)
-          window.removeEventListener('resize', kick)
-          document.removeEventListener('transitionrun', onTransition, true)
-          document.removeEventListener('transitionend', onTransition, true)
-          for (const watcher of observers) watcher.disconnect()
-        }
-      }, [snapshot])
-
-      const node = React.createElement(
-        'div',
-        {
-          className: 'dsh-sc-layer',
-          role: 'presentation',
-          'aria-hidden': 'true',
-          title: t('layer'),
-          // Readable from a DOM dump: which build this device runs, and whether
-          // the Host settings channel is live. A device without this element is
-          // running a cached client from before marks moved to the Host.
-          'data-dsh-sc-build': BUILD,
-          'data-dsh-sc-status': snapshot.status,
-          'data-dsh-sc-writable': String(snapshot.writable),
-          'data-dsh-sc-marks': String(Object.keys(snapshot.colors).length),
-          'data-dsh-sc-error': snapshot.error,
-          style: { clipPath: layer.clip, zIndex: layer.zIndex },
-        },
-        layer.items.map((chip) => React.createElement('span', {
-          key: chip.key,
-          className: 'dsh-sc-chip',
-          style: { left: `${chip.left}px`, top: `${chip.top}px`, background: chip.background },
-        })),
-      )
-
-      // DSH confines `shell.overlay` to a stacking context of its own (`z-index:
-      // 20` on the overlay layer), and nothing inside a stacking context can be
-      // raised above a sibling of it — so a sidebar that an adapter promotes to
-      // `z-index: 10000` always painted over the chips. A portal to the document
-      // body takes the layer out of that context, and the level measured above
-      // then decides how far up it sits. Without `react-dom` the layer stays in
-      // the slot, which is the old behaviour rather than a missing surface.
-      return typeof createPortal === 'function' && document.body !== undefined && document.body !== null
-        ? createPortal(node, document.body)
-        : node
-    }
-
     /** Drag helper shared by the field, hue and alpha controls. */
     function dragOn(node, read) {
       const move = (event) => {
@@ -1113,6 +867,9 @@ window.__ModuleLoader__.load({
       // LAN or tunnel page would get a permanently unavailable scope.
       const store = createStore()
       ctx.effect(() => () => { store.dispose() }, 'dsh-session-colors: preference store')
+      // The strip is painted by the row itself, so it moves with the list
+      // without measuring, listening or re-rendering on scroll.
+      ctx.effect(() => installRowChips(store), 'dsh-session-colors: row strips')
 
       // A device that shows nothing should be able to say why.
       try {
@@ -1147,30 +904,20 @@ window.__ModuleLoader__.load({
           args: { sessionId: props.sessionId },
         }),
       ))
-      seat('shell.overlay', () => ctx.slots.register(
-        { name: 'shell.overlay', id: OVERLAY_ID, order: 100, label: () => t('layer'), locale: NS },
-        (props) => React.createElement(ChipsLayer, { ...props, store, t }),
-      ))
       exports.seats = seats
     }
 
     exports.NS = NS
     exports.ACTION_ID = ACTION_ID
-    exports.OVERLAY_ID = OVERLAY_ID
     exports.MARKS_ROUTE = MARKS_ROUTE
     exports.PEER_POLL_MS = PEER_POLL_MS
     exports.BUILD = BUILD
-    exports.CHIP_WIDTH = CHIP_WIDTH
-    exports.CHIP_HEIGHT = CHIP_HEIGHT
-    exports.CHIP_OFFSET = CHIP_OFFSET
-    exports.SETTLE_FRAMES = SETTLE_FRAMES
     // Exported for the unit tests: the store, its key scheme and the row lookup
     // are the parts worth pinning down without a browser.
     exports.createStore = createStore
     exports.readMarks = readMarks
     exports.isColor = isColor
     exports.sessionIdOf = sessionIdOf
-    exports.layerZIndexOf = layerZIndexOf
     exports.hsvToRgb = hsvToRgb
     exports.rgbToHsv = rgbToHsv
     exports.toHex = toHex

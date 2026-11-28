@@ -35,17 +35,19 @@
 | 界面 | slot | 说明 |
 | --- | --- | --- |
 | 颜色选择器 | `conversation.session.header.utilities` | 系统风格面板：大色板、色相、透明度、HEX/RGBA、主题色、我的颜色、吸色（`EyeDropper`）。注册在**右对齐 utilities** 而不是标题旁的 actions，原因见下 |
-| 行内色块 | `shell.overlay` | 框架级浮层，**默认点击穿透**，官方文档称其为"你自己的框架级界面的增量座位" |
+| 行背景色条 | 无（CSS） | 每条规则按行自身的 `data-row-key` 生成，行自己绘制背景；没有浮层，不需要逐行测量 |
 
 **没有修改任何自带文件，没有 DOM 补丁。**
 
-### 行内色块怎么定位（这是唯一有耦合的部分）
+### 行条怎么定位（这是唯一有耦合的部分）
 
-DSH 0.1.6 没有会话行 slot，行的 DOM 也**不暴露 session id**（当时实测：侧栏 24 个会话行，全侧栏 0 个带 id 形态值的属性）。0.1.7 给每个会话行加了 `data-row-key="session:<id>"`，所以浮层现在靠：
+色条不再由浮层定位，而是**行自己绘制**：
 
-1. `[role="treeitem"][aria-selected]` 找到渲染出来的会话行（ARIA，非哈希类名）；
-2. 先读行自身的 `data-row-key`（`session:` 前缀）拿**精确** session id；
-3. 读不到时回退到 React fiber 的 `memoizedProps.node.id`——旧构建与搜索结果行（无 `data-row-key`）走这条路径。
+1. 每条已标记的会话生成一条 CSS 规则，选择器用行自身的 `data-row-key`（`session:<id>`）；
+2. 规则的背景图（`linear-gradient`）就是那条 4px 竖条，几何由 `background-size` / `background-position` 决定；
+3. 行没有这个属性（例如搜索结果行）就不生成匹配，色条不显示。
+
+旧版浮层、逐行测量与 fiber 回退已移除；本节以下的历史实测记录对应的是浮层版本。
 
 这一层耦合是**故意且无害的**：每一步都有 `try/catch`，读不到就跳过该行；浮层不接受指针事件，所以最坏情况只是色块不显示，不会挡住点击、不会弄坏侧栏。长期正道是向上游提一个 `sessions.row.*` slot 需求。
 
