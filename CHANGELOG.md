@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- A marked Session row now paints its colour as a row background strip instead
+  of a measured overlay: no geometry reads and no scroll listeners, so the strip
+  moves with the list in the same frame, including during momentum scrolling.
+  With the overlay gone the browser half no longer needs `react-dom`.
+
 ## [0.1.20] - 2026-11-23
 
 ### Fixed

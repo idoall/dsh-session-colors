@@ -172,14 +172,13 @@ persistence = $host.isLoopback ? "host" : "memory"
 ## 故障排查
 
 **手机上还是看不到颜色。**
-先看设备跑的是哪个构建：
+先看设备跑的是哪个构建：打开浏览器控制台，看插件启动时打印的日志：
 
-```js
-document.querySelector('.dsh-sc-layer').dataset
-// { dshScBuild, dshScStatus, dshScWritable, dshScMarks, dshScError }
+```text
+[dsh-session-colors] build=host-routes+row-strips marks route status=...
 ```
 
-`dshScBuild` 不是 `host-routes+animated-rows` 就是**客户端缓存**，刷新页面即可（客户端半边刷新即热重载，不需要重启 DSH）。`dshScStatus` 不是 `ready` 则是存储读不到，见下一条。
+`build` 不是 `host-routes+row-strips` 就是**客户端缓存**，刷新页面即可（客户端半边刷新即热重载，不需要重启 DSH）。`status` 不是 `ready` 则是存储读不到，见下一条。
 
 **头部控制显示 ⚠。**
 表示读不到存储：`dshScError` 里有原因，`dshScWritable` 说明能不能写。宿主路由未注册（插件没被 profile 加载）或数据目录不可写时会这样。注意**这不是**"这个会话没有颜色"。
@@ -200,10 +199,8 @@ document.querySelector('.dsh-sc-layer').dataset
 
 ## 限制
 
-- **既有边界。** 当前搜索结果行使用未被 fiber 回退识别的 `result.id`，不保证显示色块。Host 写盘异常仍可能退化为内存状态而不显示持久化错误；本版没有修复这些已有问题。
-
-- **色块依赖 DSH 的行 DOM。** 它靠 ARIA role 找行、靠行自身的 `data-row-key` 取会话 ID（回退到 React 内部结构）。DSH 未来改版可能让色块不再显示；但**不会影响点击**。
-- **色块不是行内占位元素。** DSH 0.1.7-rc.2 声明了真正的行座位 `sidebar.session.row.leading`（就落在状态点那一格），本插件**刻意不使用**它：该座位只在行空闲时挂载，色块放进去会在运行中、等待中与已归档的会话上消失。色块因此留在自己的点击穿透浮层上——任何状态下都可见，也永远不盖住状态点。
+- **色条依赖 DSH 的行属性。** 每条规则用行自身的 `data-row-key`（`session:<id>`）匹配：没有浮层，也没有逐行测量，滚动时与行同帧移动。DSH 未来改版若改掉这个属性，色条会停止显示；但**不会影响点击**。搜索结果行没有这个属性，因此不显示色条。
+- **色条由行自己绘制。** 行左右各有 DSH 自己的 3px 透明内缩边框，色条在 `padding-box` 内可见约 3px，位置与行左缘对齐，不会盖住状态点。
 - **标记属于单个 DSH 实例。** 它存在某个 profile 的数据目录里，两个独立的 DSH 服务之间不共享。
 - **没有权限模型。** 凡是能访问该 profile 已鉴权路由的人，都能读写标记。
 - **只有颜色。** 没有文字标签、图标或 emoji。

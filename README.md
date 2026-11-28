@@ -256,14 +256,13 @@ mark** in the picker, or remove that line from the file.
 **The colour still is not visible on my phone.**
 First check which build the device runs:
 
-```js
-document.querySelector('.dsh-sc-layer').dataset
-// { dshScBuild, dshScStatus, dshScWritable, dshScMarks, dshScError }
+```text
+[dsh-session-colors] build=host-routes+row-strips marks route status=...
 ```
 
-If `dshScBuild` is not `host-routes+animated-rows`, the device is running a
+If `build` is not `host-routes+row-strips`, the device is running a
 **cached client**: refresh the page (the browser half reloads on a refresh, no DSH
-restart needed). If `dshScStatus` is not `ready`, the store cannot be read — see
+restart needed). If `status` is not `ready`, the store cannot be read — see
 the next item.
 
 **The header control shows ⚠.**
@@ -298,17 +297,14 @@ unaffected** because the layer is click-through.
 
 ## Limitations
 
-- **Pre-existing limits.** Current search-result rows use `result.id`, which the fiber fallback does not recognise, so chips are not guaranteed there. Host disk-write errors can still fall back to memory without reporting the persistence failure; this patch does not fix these existing issues.
-
-- **The chip depends on DSH's row DOM.** It reads rows by ARIA role and the
-  Session id from the row's `data-row-key`, falling back to React internals. A
-  future DSH release can stop chips from appearing; it cannot break clicking.
-- **The chip is not a row occupant.** DSH 0.1.7-rc.2 declares a real
-  `sidebar.session.row.leading` seat in the row's status-dot cell, and this plugin
-  deliberately does **not** use it: that seat is mounted only while a row is idle,
-  so a chip placed there would disappear for running, waiting and archived
-  Sessions. The chip stays on its own click-through layer, which keeps it visible
-  in every state and never covers the dot.
+- **The strip depends on a row attribute.** Each rule matches the row's own
+  `data-row-key` (`session:<id>`): there is no overlay and no per-row measuring,
+  so the strip moves with the list in the same frame. A future DSH release that
+  drops the attribute stops the strips from appearing; it cannot break clicking.
+  Search-result rows do not carry it, so they show no strip.
+- **The strip is painted by the row.** DSH gives each row a 3px transparent
+  inline border; `padding-box` clipping leaves the strip about 3px wide against
+  the row's left edge, clear of the status dot.
 - **Marks are per DSH instance.** They live in one profile's data directory, so
   two independent DSH servers do not share them.
 - **No permission model.** Anyone who can reach the Host's authenticated routes
